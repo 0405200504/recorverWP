@@ -5,6 +5,8 @@ import bcrypt from 'bcryptjs';
 
 import { NextAuthOptions } from 'next-auth';
 
+export const dynamic = 'force-dynamic';
+
 export const authOptions: NextAuthOptions = {
     providers: [
         CredentialsProvider({
