@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { providers } from '@/lib/providers';
 import { processWebhookPayload } from '@/lib/webhook-processor';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest, { params }: { params: Promise<{ provider: string }> }) {
     try {
         const { provider } = await params;
