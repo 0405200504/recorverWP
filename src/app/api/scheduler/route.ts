@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { WhatsAppService } from '@/lib/whatsapp';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
     // Authentication para a rota de cron (ex: header de bearer token vercel-cron)
     const authHeader = req.headers.get('authorization');
