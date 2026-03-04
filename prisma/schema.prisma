@@ -1,0 +1,259 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// ==========================================
+// A) AUTENTICAÇÃO E MULTI-TENANT
+// ==========================================
+
+model Organization {
+  id             String   @id @default(cuid())
+  name           String
+  timezone       String   @default("America/Sao_Paulo")
+  currency       String   @default("BRL")
+  webhook_secret String   @default(uuid())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  users            Membership[]
+  whatsappNumbers  WhatsAppNumber[]
+  webhookConfigs   WebhookConfig[]
+  leads            Lead[]
+  orders           Order[]
+  campaigns        Campaign[]
+  runs             RecoveryRun[]
+  messages         Message[]
+  whatsappTemplates WhatsAppTemplate[]
+}
+
+model User {
+  id            String       @id @default(cuid())
+  name          String?
+  email         String       @unique
+  passwordHash  String
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  memberships   Membership[]
+}
+
+model Membership {
+  id             String       @id @default(cuid())
+  userId         String
+  organizationId String
+  role           String       // "owner", "admin", "viewer"
+  createdAt      DateTime     @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+}
+
+model WhatsAppNumber {
+  id             String       @id @default(cuid())
+  organizationId String
+  phoneNumberId  String
+  wabaId         String
+  accessToken    String       // Armazenar a string da API
+  displayName    String?
+  status         String       @default("active") // "active", "disconnected"
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model WebhookConfig {
+  id             String   @id @default(cuid())
+  organizationId String
+  provider       String   // "hotmart", "kiwify", "cakto", "shopify", "custom", etc.
+  name           String
+  clientId       String?
+  clientSecret   String?
+  webhookToken   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+// ==========================================
+// C) LEADS E PEDIDOS
+// ==========================================
+
+model Lead {
+  id              String   @id @default(cuid())
+  organizationId  String
+  name            String?
+  phoneE164       String
+  email           String?
+  consentWhatsapp Boolean  @default(false)
+  consentSource   String?
+  consentAt       DateTime?
+  tags            String?  // JSON list
+  lastSeenAt      DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  orders       Order[]
+  messages     Message[]
+
+  @@unique([organizationId, phoneE164])
+}
+
+model Order {
+  id               String   @id @default(cuid())
+  organizationId   String
+  leadId           String
+  externalOrderId  String
+  provider         String   // "hotmart", "kiwify", "cakto", "shopify", "custom"
+  status           String   // "started", "pending", "failed", "approved", "refunded"
+  paymentMethod    String?  // "pix", "boleto", "card"
+  amount           Float
+  currency         String   @default("BRL")
+  checkoutUrl      String?
+  pixCopyPaste     String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  lead         Lead          @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  events       OrderEvent[]
+  runs         RecoveryRun[]
+  messages     Message[]
+
+  @@unique([organizationId, provider, externalOrderId])
+}
+
+model OrderEvent {
+  id                String   @id @default(cuid())
+  orderId           String
+  eventType         String   // "checkout_started", "pix_generated", etc.
+  rawPayload        String   // JSON string
+  normalizedPayload String   // JSON string
+  createdAt         DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+// ==========================================
+// D) CAMPANHAS DE RECUPERAÇÃO
+// ==========================================
+
+model Campaign {
+  id                         String   @id @default(cuid())
+  organizationId             String
+  name                       String
+  active                     Boolean  @default(true)
+  triggerEventTypes          String   // JSON array de eventos (ex: ["pix_generated"])
+  matchingRules              String?  // JSON (oferta, valor_minimo, metodo_pagamento, etc)
+  stopOnEventTypes           String   // JSON array (ex: ["payment_approved", "refunded"])
+  maxAttemptsPerLeadPerOrder Int      @default(3)
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  steps        CadenceStep[]
+  runs         RecoveryRun[]
+}
+
+model CadenceStep {
+  id              String   @id @default(cuid())
+  campaignId      String
+  stepOrder       Int
+  delayMinutes    Int
+  messageType     String   // "freeform" ou "template"
+  templateName    String?
+  contentText     String?  // com placeholders
+  mediaUrl        String?
+  buttons         String?  // JSON array
+  sendOnlyIf      String   @default("qualquer") // "dentro_24h", "fora_24h", "qualquer"
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  campaign   Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  dispatches StepDispatch[]
+}
+
+// ==========================================
+// E) MOTOR DE DISPARO (JOBS)
+// ==========================================
+
+model RecoveryRun {
+  id             String   @id @default(cuid())
+  organizationId String
+  orderId        String
+  campaignId     String
+  status         String   @default("scheduled") // "scheduled", "running", "stopped", "completed"
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  order        Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  campaign     Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  dispatches   StepDispatch[]
+
+  @@unique([orderId, campaignId])
+}
+
+model StepDispatch {
+  id           String    @id @default(cuid())
+  runId        String
+  stepId       String
+  scheduledFor DateTime
+  status       String    @default("pending") // "pending", "sent", "failed", "canceled", "skipped"
+  attempts     Int       @default(0)
+  lastError    String?
+  sentAt       DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  run  RecoveryRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  step CadenceStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  organizationId String
+  leadId         String
+  orderId        String?
+  direction      String   // "outbound", "inbound"
+  channel        String   @default("whatsapp")
+  waMessageId    String?  @unique
+  payload        String   // JSON com info da mensagem
+  status         String   @default("sent") // "sent", "delivered", "read", "failed", "received"
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  lead         Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  order        Order?       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+// ==========================================
+// WHATSAPP TEMPLATES
+// ==========================================
+
+model WhatsAppTemplate {
+  id              String   @id @default(cuid())
+  organizationId  String
+  name            String
+  language        String   @default("pt_BR")
+  category        String   @default("MARKETING") // "UTILITY", "MARKETING"
+  status          String   @default("APPROVED")
+  sampleVariables String?  // JSON
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, name, language])
+}
