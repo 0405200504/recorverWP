@@ -61,11 +61,7 @@ export function AddCampaignButton() {
     }
 
     return (
-        <div className={styles.shadcnCard}>
-            <div className={styles.shadcnCardHeader}>
-                <h4 className={styles.shadcnCardTitle}>Criar Nova Campanha de Automação</h4>
-                <p className={styles.shadcnCardDescription}>Preencha os dados abaixo para configurar os disparos.</p>
-            </div>
+        <div style={{ width: '100%', maxWidth: '448px' }}>
             <form onSubmit={handleAdd} className={styles.fieldGroup}>
                 <div className={styles.fieldSet}>
                     <h5 className={styles.fieldLegend}>Detalhes Essenciais</h5>
@@ -148,11 +144,11 @@ export function AddCampaignButton() {
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '16px' }}>
-                    <button type="button" onClick={() => setIsOpen(false)} className={styles.shadcnButtonOutline} disabled={loading}>Cancelar</button>
+                <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
                     <button type="submit" className={styles.shadcnButtonPrimary} disabled={loading}>
                         {loading ? 'Salvando...' : 'Salvar Campanha'}
                     </button>
+                    <button type="button" onClick={() => setIsOpen(false)} className={styles.shadcnButtonOutline} disabled={loading}>Cancelar</button>
                 </div>
             </form>
         </div>
