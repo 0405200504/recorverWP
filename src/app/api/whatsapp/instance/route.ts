@@ -23,13 +23,7 @@ export async function POST(req: NextRequest) {
             body: JSON.stringify({
                 instanceName: name,
                 qrcode: true,
-                integration: 'WHATSAPP-BAILEYS',
-                reject_call: true,
-                msgResend: false,
-                syncFullHistory: false,
-                readMessages: false,
-                readStatus: false,
-                groupsIgnore: true
+                integration: 'WHATSAPP-BAILEYS'
             }),
         });
 
@@ -37,6 +31,21 @@ export async function POST(req: NextRequest) {
             const txt = await res.text();
             return NextResponse.json({ error: `Falha ao criar instância: ${txt}` }, { status: 400 });
         }
+
+        // Aplica configurações cruciais separadamente para garantir aplicação na Evolution API
+        await fetch(`${EVO_URL}/settings/set/${name}`, {
+            method: 'POST',
+            headers: evoHeaders,
+            body: JSON.stringify({
+                rejectCall: true,
+                msgCall: '',
+                groupsIgnore: true,
+                alwaysOnline: false,
+                readMessages: false,
+                readStatus: false,
+                syncFullHistory: false
+            })
+        }).catch(err => console.error("Erro ao definir settings na API do whats", err));
 
         // Retorna imediatamente — o frontend vai fazer polling do QR via /qr
         return NextResponse.json({ instanceName: name, creating: true });
