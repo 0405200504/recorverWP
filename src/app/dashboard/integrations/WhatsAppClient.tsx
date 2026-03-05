@@ -1,197 +1,186 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import styles from '../dashboard.module.css';
 import { addWhatsAppNumber, deleteWhatsAppNumber } from '../actions';
-
-const STEPS = [
-    {
-        icon: '1',
-        title: 'Acesse o Meta Business',
-        desc: 'Vá em business.whatsapp.com e entre com a conta Meta da sua empresa.'
-    },
-    {
-        icon: '2',
-        title: 'Crie um App',
-        desc: 'Em "Meus Apps" crie um novo app do tipo "Business" e adicione o produto "WhatsApp".'
-    },
-    {
-        icon: '3',
-        title: 'Copie as credenciais',
-        desc: 'Na seção WhatsApp > Primeiros Passos, copie seu "Token de Acesso Temporário", "ID do Número de Telefone" e "ID da Conta do WhatsApp Business (WABA ID)".'
-    },
-];
 
 export function AddWhatsAppButton() {
     const [isOpen, setIsOpen] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [step, setStep] = useState<'guide' | 'form'>('guide');
+    const [step, setStep] = useState<'form' | 'qr' | 'connected'>('form');
+    const [instanceName, setInstanceName] = useState('');
+    const [qrCodeBase64, setQrCodeBase64] = useState('');
     const [error, setError] = useState('');
+    const [polling, setPolling] = useState(false);
 
-    const [phoneNumberId, setPhoneNumberId] = useState('');
-    const [wabaId, setWabaId] = useState('');
-    const [accessToken, setAccessToken] = useState('');
-    const [displayName, setDisplayName] = useState('');
+    // Gera o nome da instância baseado na data
+    const generateInstanceName = () => `recuperei_${Date.now()}`;
 
-    const handleConnect = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const startConnection = async () => {
+        if (!instanceName.trim()) return;
         setLoading(true);
         setError('');
-
-        // Valida o token fazendo uma chamada real na API do Meta
         try {
-            const verifyRes = await fetch(`https://graph.facebook.com/v19.0/${phoneNumberId}?access_token=${accessToken}`);
-            const verifyData = await verifyRes.json();
-
-            if (verifyData.error) {
-                setError(`Erro da API do Meta: ${verifyData.error.message}. Verifique suas credenciais.`);
-                setLoading(false);
-                return;
-            }
-
-            // Se chegou aqui, o token é válido - salva no banco
-            await addWhatsAppNumber({
-                phoneNumberId,
-                wabaId,
-                accessToken,
-                displayName: displayName || verifyData.display_phone_number || displayName || 'Meu WhatsApp'
+            const res = await fetch('/api/whatsapp/instance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ instanceName: instanceName.trim() })
             });
+            const data = await res.json();
 
-            setIsOpen(false);
-            setStep('guide');
-            setPhoneNumberId('');
-            setWabaId('');
-            setAccessToken('');
-            setDisplayName('');
+            // Extrai o QR Code da resposta
+            const qr = data?.qrcode?.base64 || data?.qr?.base64 || data?.base64;
+            if (qr) {
+                setQrCodeBase64(qr);
+                setStep('qr');
+                setPolling(true);
+            } else {
+                setError('Não foi possível gerar o QR Code. Tente outro nome de instância.');
+            }
         } catch (err: any) {
-            setError('Falha ao conectar. Verifique as credenciais e tente novamente.');
+            setError('Erro ao conectar: ' + err.message);
         } finally {
             setLoading(false);
         }
     };
 
+    // Polling para verificar se o WhatsApp foi conectado
+    const checkConnectionStatus = useCallback(async () => {
+        if (!instanceName || !polling) return;
+        try {
+            const res = await fetch(`/api/whatsapp/instance?name=${encodeURIComponent(instanceName)}`);
+            const data = await res.json();
+            const state = data?.instance?.state || data?.state;
+
+            if (state === 'open') {
+                // Conectado! Salva no banco
+                setPolling(false);
+                setStep('connected');
+                await addWhatsAppNumber({
+                    phoneNumberId: instanceName,
+                    wabaId: 'evolution_api',
+                    accessToken: instanceName,
+                    displayName: data?.instance?.profileName || instanceName
+                });
+                setTimeout(() => {
+                    setIsOpen(false);
+                    setStep('form');
+                    setQrCodeBase64('');
+                    setInstanceName('');
+                }, 2000);
+            } else if (state === 'connecting' || state === 'close') {
+                // Ainda aguardando — busca novo QR se necessário
+                const qrRes = await fetch(`/api/whatsapp/instance/qr?name=${encodeURIComponent(instanceName)}`);
+                const qrData = await qrRes.json();
+                const newQr = qrData?.qrcode?.base64 || qrData?.base64;
+                if (newQr && newQr !== qrCodeBase64) setQrCodeBase64(newQr);
+            }
+        } catch { /* ignora erros de polling */ }
+    }, [instanceName, polling, qrCodeBase64]);
+
+    useEffect(() => {
+        if (!polling) return;
+        const interval = setInterval(checkConnectionStatus, 3000);
+        return () => clearInterval(interval);
+    }, [polling, checkConnectionStatus]);
+
+    const handleClose = async () => {
+        setPolling(false);
+        if (instanceName && step === 'qr') {
+            // Limpa instância não conectada
+            fetch(`/api/whatsapp/instance?name=${encodeURIComponent(instanceName)}`, { method: 'DELETE' }).catch(() => { });
+        }
+        setIsOpen(false);
+        setStep('form');
+        setQrCodeBase64('');
+        setInstanceName('');
+        setError('');
+    };
+
     if (!isOpen) {
         return (
-            <button onClick={() => setIsOpen(true)} className={styles.btnPrimary} style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21" /></svg>
-                Conectar WhatsApp (API Oficial)
+            <button
+                onClick={() => { setInstanceName(generateInstanceName()); setIsOpen(true); }}
+                className={styles.btnPrimary}
+                style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
+            >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21" /></svg>
+                Conectar WhatsApp via QR Code
             </button>
         );
     }
 
     return (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' }}>
-            <div style={{ width: '520px', maxHeight: '90vh', overflowY: 'auto', background: '#111111', borderRadius: '16px', border: '1px solid #27272a', padding: '32px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.6)' }}>
-
-                {/* Abas */}
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
-                    <button onClick={() => setStep('guide')} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid', borderColor: step === 'guide' ? '#a3e635' : '#27272a', background: step === 'guide' ? 'rgba(163,230,53,0.1)' : 'transparent', color: step === 'guide' ? '#a3e635' : '#a1a1aa', cursor: 'pointer', fontWeight: 600, fontSize: '14px', transition: 'all 0.2s' }}>
-                        📋 Como Obter as Credenciais
-                    </button>
-                    <button onClick={() => setStep('form')} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid', borderColor: step === 'form' ? '#a3e635' : '#27272a', background: step === 'form' ? 'rgba(163,230,53,0.1)' : 'transparent', color: step === 'form' ? '#a3e635' : '#a1a1aa', cursor: 'pointer', fontWeight: 600, fontSize: '14px', transition: 'all 0.2s' }}>
-                        🔑 Inserir Credenciais
-                    </button>
-                </div>
-
-                {step === 'guide' && (
-                    <>
-                        <h3 style={{ margin: '0 0 8px 0', color: '#fff', fontSize: '18px' }}>Integração via API Oficial do Meta</h3>
-                        <p style={{ color: '#a1a1aa', fontSize: '13px', marginBottom: '20px', lineHeight: '1.6' }}>
-                            Esta é a forma <strong style={{ color: '#a3e635' }}>oficial e segura</strong> de conectar seu WhatsApp. Utiliza a API Cloud do Meta — a mesma tecnologia dos maiores SaaS de marketing do mundo. Nenhum risco de banimento.
-                        </p>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
-                            {STEPS.map((s) => (
-                                <div key={s.icon} style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', background: '#18181b', border: '1px solid #27272a', borderRadius: '10px', padding: '14px' }}>
-                                    <div style={{ width: '28px', height: '28px', background: '#a3e635', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#000', fontSize: '13px', flexShrink: 0 }}>{s.icon}</div>
-                                    <div>
-                                        <div style={{ color: '#fff', fontWeight: 600, fontSize: '14px', marginBottom: '4px' }}>{s.title}</div>
-                                        <div style={{ color: '#a1a1aa', fontSize: '13px', lineHeight: '1.5' }}>{s.desc}</div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        <a href="https://business.facebook.com/wa/manage/phone-numbers/" target="_blank" rel="noopener noreferrer" style={{ display: 'block', textAlign: 'center', padding: '12px', background: '#1877f2', color: '#fff', borderRadius: '10px', textDecoration: 'none', fontWeight: 600, marginBottom: '12px', fontSize: '14px' }}>
-                            🔗 Acessar Meta Business Platform
-                        </a>
-
-                        <button onClick={() => setStep('form')} className={styles.btnPrimary} style={{ width: '100%' }}>
-                            Já tenho as credenciais →
-                        </button>
-                        <button onClick={() => setIsOpen(false)} style={{ width: '100%', marginTop: '8px', padding: '10px', background: 'transparent', border: '1px solid #27272a', borderRadius: '10px', color: '#a1a1aa', cursor: 'pointer', fontSize: '14px' }}>
-                            Cancelar
-                        </button>
-                    </>
-                )}
+            <div style={{ width: '400px', background: '#111111', borderRadius: '16px', border: '1px solid #27272a', padding: '32px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.6)' }}>
 
                 {step === 'form' && (
                     <>
-                        <h3 style={{ margin: '0 0 20px 0', color: '#fff', fontSize: '18px' }}>Inserir Credenciais da API</h3>
+                        <h3 style={{ margin: '0 0 8px 0', color: '#fff', fontSize: '20px', textAlign: 'center' }}>Conectar WhatsApp</h3>
+                        <p style={{ color: '#a1a1aa', fontSize: '13px', textAlign: 'center', marginBottom: '24px', lineHeight: '1.6' }}>
+                            Conecte seu WhatsApp lendo o QR Code com o celular. É simples e rápido!
+                        </p>
 
                         {error && (
-                            <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '8px', padding: '12px', marginBottom: '16px', color: '#ef4444', fontSize: '13px' }}>
+                            <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px', color: '#ef4444', fontSize: '13px' }}>
                                 {error}
                             </div>
                         )}
 
-                        <form onSubmit={handleConnect} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '13px', color: '#a1a1aa', marginBottom: '6px', fontWeight: 500 }}>Nome de Exibição (opcional)</label>
-                                <input
-                                    type="text"
-                                    placeholder="Ex: Suporte Empresa"
-                                    className={styles.input}
-                                    value={displayName}
-                                    onChange={e => setDisplayName(e.target.value)}
-                                />
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '13px', color: '#a1a1aa', marginBottom: '6px', fontWeight: 500 }}>Phone Number ID <span style={{ color: '#ef4444' }}>*</span></label>
-                                <input
-                                    required
-                                    type="text"
-                                    placeholder="Ex: 123456789012345"
-                                    className={styles.input}
-                                    value={phoneNumberId}
-                                    onChange={e => setPhoneNumberId(e.target.value)}
-                                />
-                                <p style={{ fontSize: '11px', color: '#71717a', marginTop: '4px' }}>Encontrado em: WhatsApp &gt; API Setup &gt; Phone Number ID</p>
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '13px', color: '#a1a1aa', marginBottom: '6px', fontWeight: 500 }}>WABA ID (WhatsApp Business Account ID) <span style={{ color: '#ef4444' }}>*</span></label>
-                                <input
-                                    required
-                                    type="text"
-                                    placeholder="Ex: 987654321098765"
-                                    className={styles.input}
-                                    value={wabaId}
-                                    onChange={e => setWabaId(e.target.value)}
-                                />
-                                <p style={{ fontSize: '11px', color: '#71717a', marginTop: '4px' }}>Encontrado em: WhatsApp &gt; API Setup &gt; WhatsApp Business Account ID</p>
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '13px', color: '#a1a1aa', marginBottom: '6px', fontWeight: 500 }}>Access Token (Token Permanente) <span style={{ color: '#ef4444' }}>*</span></label>
-                                <textarea
-                                    required
-                                    rows={3}
-                                    placeholder="EAAxxxxxx... (Cole aqui o seu token de acesso permanente)"
-                                    className={styles.input}
-                                    value={accessToken}
-                                    onChange={e => setAccessToken(e.target.value)}
-                                    style={{ fontFamily: 'monospace', fontSize: '11px', resize: 'vertical' }}
-                                />
-                                <p style={{ fontSize: '11px', color: '#f59e0b', marginTop: '4px' }}>⚠️ Use um Token Permanente (do System User), não o token temporário de 24h.</p>
-                            </div>
+                        <div style={{ marginBottom: '20px' }}>
+                            <label style={{ display: 'block', fontSize: '13px', color: '#a1a1aa', marginBottom: '6px' }}>Nome da Conexão</label>
+                            <input
+                                className={styles.input}
+                                value={instanceName}
+                                onChange={e => setInstanceName(e.target.value)}
+                                placeholder="Ex: meu_whatsapp_vendas"
+                            />
+                            <p style={{ fontSize: '11px', color: '#71717a', marginTop: '4px' }}>Use apenas letras, números e underscore (_)</p>
+                        </div>
 
-                            <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
-                                <button type="button" onClick={() => setStep('guide')} className={styles.btnSecondary} style={{ flex: 1 }} disabled={loading}>← Guia</button>
-                                <button type="submit" className={styles.btnPrimary} style={{ flex: 2 }} disabled={loading}>
-                                    {loading ? 'Validando e conectando...' : '✓ Conectar WhatsApp'}
-                                </button>
-                            </div>
-                        </form>
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <button onClick={handleClose} className={styles.btnSecondary} style={{ flex: 1 }}>Cancelar</button>
+                            <button onClick={startConnection} className={styles.btnPrimary} style={{ flex: 2 }} disabled={loading || !instanceName}>
+                                {loading ? 'Gerando QR Code...' : '→ Gerar QR Code'}
+                            </button>
+                        </div>
                     </>
+                )}
+
+                {step === 'qr' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <h3 style={{ margin: '0 0 8px 0', color: '#fff', fontSize: '20px' }}>Escaneie o QR Code</h3>
+                        <p style={{ color: '#a1a1aa', fontSize: '13px', textAlign: 'center', marginBottom: '20px' }}>
+                            Abra o WhatsApp → <strong>Aparelhos Conectados</strong> → <strong>Conectar aparelho</strong> → aponte a câmera
+                        </p>
+
+                        <div style={{ width: '220px', height: '220px', background: '#fff', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px', padding: '8px' }}>
+                            {qrCodeBase64 ? (
+                                <img src={qrCodeBase64} alt="QR Code WhatsApp" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                            ) : (
+                                <div style={{ color: '#000', textAlign: 'center', fontSize: '13px' }}>Carregando QR Code...</div>
+                            )}
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
+                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b', animation: 'pulse 1.5s infinite' }} />
+                            <span style={{ color: '#a1a1aa', fontSize: '13px' }}>Aguardando leitura do QR Code...</span>
+                        </div>
+
+                        <button onClick={handleClose} style={{ background: 'transparent', border: '1px solid #27272a', borderRadius: '8px', color: '#a1a1aa', padding: '8px 24px', cursor: 'pointer', fontSize: '13px' }}>
+                            Cancelar
+                        </button>
+                    </div>
+                )}
+
+                {step === 'connected' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                        <div style={{ width: '64px', height: '64px', background: 'rgba(16,185,129,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #10b981' }}>
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                        </div>
+                        <h3 style={{ margin: 0, color: '#10b981', fontSize: '20px' }}>WhatsApp Conectado!</h3>
+                        <p style={{ color: '#a1a1aa', fontSize: '13px', textAlign: 'center', margin: 0 }}>Seu WhatsApp foi conectado com sucesso. Fechando...</p>
+                    </div>
                 )}
             </div>
         </div>
@@ -206,7 +195,7 @@ export function DeleteWhatsAppButton({ id }: { id: string }) {
         setLoading(true);
         try {
             await deleteWhatsAppNumber(id);
-        } catch (err) {
+        } catch {
             alert('Erro ao remover');
             setLoading(false);
         }
