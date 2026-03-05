@@ -147,7 +147,8 @@ model CadenceStep {
   id           String         @id @default(dbgenerated("(gen_random_uuid())::text"))
   campaignId   String
   stepOrder    Int
-  delayMinutes Int
+  delayMinutes Int?
+  delaySeconds Int            @default(0)
   messageType  String
   templateName String?
   contentText  String?

@@ -62,6 +62,7 @@ export const customAdapter: WebhookProviderAdapter = {
             // 3. Mapeamento de Status e Evento
             const rawStatus = String(data.status || data.order_status || data.purchase?.status || data.transaction?.status || data.financial_status || '').toLowerCase();
             const rawEvent = String(data.event || data.event_type || data.eventType || data.type || '').toUpperCase();
+            const method = String(data.payment_method || data.paymentMethod || data.method || data.payment?.method || data.type || '').toLowerCase();
 
             let status: any = 'pending';
             let eventType: any = 'order_created';
@@ -70,24 +71,24 @@ export const customAdapter: WebhookProviderAdapter = {
             if (['approved', 'paid', 'pago', 'concluida', 'sucesso', 'complete', 'confirmed', 'vendido', 'success'].some(s => rawStatus.includes(s)) || rawEvent.includes('APPROVED') || rawEvent.includes('PAID')) {
                 status = 'approved';
                 eventType = 'payment_approved';
-            } else if (['refused', 'canceled', 'cancelado', 'failed', 'rejeitado', 'error', 'declined', 'rejeitada'].some(s => rawStatus.includes(s)) || rawEvent.includes('DECLINED') || rawEvent.includes('FAILED')) {
+            } else if (['refused', 'canceled', 'cancelado', 'failed', 'rejeitado', 'error', 'declined', 'rejeit'].some(s => rawStatus.includes(s)) || rawEvent.includes('DECLINED') || rawEvent.includes('FAILED')) {
                 status = 'failed';
                 eventType = 'payment_failed';
             } else if (['refunded', 'reembolsado', 'devolvido', 'chargeback'].some(s => rawStatus.includes(s)) || rawEvent.includes('REFUND')) {
                 status = 'refunded';
                 eventType = 'refund';
-            } else if (['waiting', 'pending', 'aguardando', 'pendente', 'processing', 'unpaid', 'atrasado'].some(s => rawStatus.includes(s)) || rawEvent.includes('PENDING') || rawEvent.includes('WAITING') || rawEvent.includes('BILLE') || rawEvent.includes('PIX')) {
+            } else if (['waiting', 'pending', 'aguardando', 'pendente', 'processing', 'unpaid', 'atrasado'].some(s => rawStatus.includes(s)) || rawEvent.includes('PENDING') || rawEvent.includes('WAITING') || rawEvent.includes('BILLE') || rawEvent.includes('PIX') || rawEvent.includes('GERADO')) {
                 status = 'pending';
-                const method = String(data.payment_method || data.method || data.payment?.method || data.type || '').toLowerCase();
+
                 const pixKeys = ['pix', 'qrc', 'static'];
-                const boletoKeys = ['billet', 'boleto', 'bank_transfer', 'bol'];
+                const boletoKeys = ['billet', 'boleto', 'bank_transfer', 'bol', 'bil'];
 
                 if (method.includes('pix') || rawEvent.includes('PIX') || pixKeys.some(k => method.includes(k))) {
                     eventType = 'pix_generated';
-                } else if (method.includes('billet') || method.includes('boleto') || rawEvent.includes('BILLET') || boletoKeys.some(k => method.includes(k))) {
+                } else if (method.includes('billet') || method.includes('boleto') || rawEvent.includes('BILLET') || rawEvent.includes('BOLETO') || boletoKeys.some(k => method.includes(k))) {
                     eventType = 'boleto_generated';
                 }
-            } else if (rawEvent.includes('ABANDONED') || rawEvent.includes('CART') || rawEvent.includes('CHECKOUT')) {
+            } else if (rawEvent.includes('ABANDONED') || rawEvent.includes('CART') || rawEvent.includes('CHECKOUT') || rawEvent.includes('ABANDONO')) {
                 status = 'started';
                 eventType = 'checkout_abandoned';
             }
@@ -105,13 +106,13 @@ export const customAdapter: WebhookProviderAdapter = {
                 payment: {
                     amount: amount,
                     currency: data.currency || data.payment?.currency || 'BRL',
-                    method: (data.payment_method || data.method || data.payment?.method || 'other').toLowerCase() as any,
+                    method: method as any,
                 },
                 status: status,
                 eventType: eventType,
                 timestamp: data.created_at || data.timestamp || data.updated_at || new Date().toISOString(),
                 checkoutUrl: data.checkout_url || data.url || data.checkout_payment_url || undefined,
-                pixCopyPaste: data.pix_code || data.pix_qrcode || data.pixCopyPaste || data.transaction?.pix_qrcode || undefined,
+                pixCopyPaste: data.pix_code || data.pix_qrcode || data.pixCopyPaste || data.transaction?.pix_qrcode || data.pix?.qrCode || undefined,
             };
         } catch (error) {
             console.error('[UniversalAdapter] Erro ao normalizar payload:', error);

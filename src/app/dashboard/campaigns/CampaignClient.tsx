@@ -25,7 +25,8 @@ export function AddCampaignButton() {
 
     const [name, setName] = useState('');
     const [triggerEvent, setTriggerEvent] = useState('pix_generated');
-    const [delayMinutes, setDelayMinutes] = useState('10');
+    const [delayValue, setDelayValue] = useState('10');
+    const [delayUnit, setDelayUnit] = useState<'minutes' | 'seconds'>('minutes');
     const [messageType, setMessageType] = useState<'text' | 'audio'>('text');
     const [textContent, setTextContent] = useState('');
     const [mediaUrl, setMediaUrl] = useState('');
@@ -37,7 +38,8 @@ export function AddCampaignButton() {
             await addCampaign({
                 name,
                 triggerEvent,
-                delayMinutes: parseInt(delayMinutes),
+                delayValue: parseInt(delayValue),
+                delayUnit,
                 messageType,
                 textContent: messageType === 'text' ? textContent : '',
                 mediaUrl: messageType === 'audio' ? mediaUrl : ''
@@ -177,29 +179,50 @@ export function AddCampaignButton() {
                             </div>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                <label style={{ fontSize: '13px', fontWeight: 500, color: '#a1a1aa' }}>Atraso (min)</label>
-                                <input
-                                    required
-                                    type="number"
-                                    min="0"
-                                    placeholder="10"
-                                    value={delayMinutes}
-                                    onChange={e => setDelayMinutes(e.target.value)}
-                                    style={{
-                                        height: '42px',
-                                        background: '#111111',
-                                        border: '1px solid #262626',
-                                        borderRadius: '10px',
-                                        color: '#ffffff',
-                                        fontSize: '14px',
-                                        padding: '0 14px',
-                                        outline: 'none',
-                                        width: '100%',
-                                        fontFamily: 'inherit',
-                                    }}
-                                    onFocus={e => e.target.style.borderColor = '#a3e635'}
-                                    onBlur={e => e.target.style.borderColor = '#262626'}
-                                />
+                                <label style={{ fontSize: '13px', fontWeight: 500, color: '#a1a1aa' }}>Atraso</label>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <input
+                                        required
+                                        type="number"
+                                        min="0"
+                                        placeholder="10"
+                                        value={delayValue}
+                                        onChange={e => setDelayValue(e.target.value)}
+                                        style={{
+                                            height: '42px',
+                                            background: '#111111',
+                                            border: '1px solid #262626',
+                                            borderRadius: '10px',
+                                            color: '#ffffff',
+                                            fontSize: '14px',
+                                            padding: '0 14px',
+                                            outline: 'none',
+                                            width: '60%',
+                                            fontFamily: 'inherit',
+                                        }}
+                                        onFocus={e => e.target.style.borderColor = '#a3e635'}
+                                        onBlur={e => e.target.style.borderColor = '#262626'}
+                                    />
+                                    <select
+                                        value={delayUnit}
+                                        onChange={e => setDelayUnit(e.target.value as any)}
+                                        style={{
+                                            flex: 1,
+                                            height: '42px',
+                                            background: '#111111',
+                                            border: '1px solid #262626',
+                                            borderRadius: '10px',
+                                            color: '#ffffff',
+                                            fontSize: '13px',
+                                            padding: '0 8px',
+                                            outline: 'none',
+                                            cursor: 'pointer',
+                                        }}
+                                    >
+                                        <option value="minutes">Minutos</option>
+                                        <option value="seconds">Segundos</option>
+                                    </select>
+                                </div>
                             </div>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -371,15 +394,26 @@ export function DeleteCampaignButton({ id }: { id: string }) {
     );
 }
 
-export function EditCampaignButton({ id, name, triggerEvent, delayMinutes, messageType, textContent, mediaUrl }: {
-    id: string; name: string; triggerEvent: string; delayMinutes: number;
+export function EditCampaignButton({ id, name, triggerEvent, delaySeconds, messageType, textContent, mediaUrl }: {
+    id: string; name: string; triggerEvent: string; delaySeconds: number;
     messageType: string; textContent: string; mediaUrl: string;
 }) {
     const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);
     const [loading, setLoading] = useState(false);
+
+    // Calcula valor e unidade inicial
+    const initialUnit = delaySeconds % 60 === 0 && delaySeconds >= 60 ? 'minutes' : 'seconds';
+    const initialValue = initialUnit === 'minutes' ? delaySeconds / 60 : delaySeconds;
+
     const [form, setForm] = useState({
-        name, triggerEvent, delayMinutes, messageType, textContent, mediaUrl
+        name,
+        triggerEvent,
+        delayValue: initialValue,
+        delayUnit: initialUnit as 'minutes' | 'seconds',
+        messageType,
+        textContent,
+        mediaUrl
     });
 
     const handleSubmit = async (e: any) => {
@@ -419,9 +453,29 @@ export function EditCampaignButton({ id, name, triggerEvent, delayMinutes, messa
                 </div>
 
                 <div>
-                    <label style={{ color: '#a1a1aa', fontSize: 13, display: 'block', marginBottom: 6 }}>Delay (minutos)</label>
-                    <input type="number" min={1} max={10080} value={form.delayMinutes} onChange={e => setForm({ ...form, delayMinutes: Number(e.target.value) })} required
-                        style={{ width: '100%', background: '#18181b', border: '1px solid #27272a', borderRadius: 8, padding: '10px 14px', color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+                    <label style={{ color: '#a1a1aa', fontSize: 13, display: 'block', marginBottom: 6 }}>Delay</label>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                        <input type="number" min={0} value={form.delayValue} onChange={e => setForm({ ...form, delayValue: Number(e.target.value) })} required
+                            style={{ flex: 1, background: '#18181b', border: '1px solid #27272a', borderRadius: 8, padding: '10px 14px', color: '#fff', fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+                        <select
+                            value={form.delayUnit}
+                            onChange={e => setForm({ ...form, delayUnit: e.target.value as any })}
+                            style={{
+                                width: '120px',
+                                background: '#18181b',
+                                border: '1px solid #27272a',
+                                borderRadius: 8,
+                                padding: '10px',
+                                color: '#fff',
+                                fontSize: 13,
+                                outline: 'none',
+                                cursor: 'pointer',
+                            }}
+                        >
+                            <option value="minutes">Minutos</option>
+                            <option value="seconds">Segundos</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div>

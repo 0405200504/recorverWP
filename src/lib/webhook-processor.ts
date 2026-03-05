@@ -3,6 +3,8 @@ import { NormalizedWebhookPayload } from './types/webhook';
 import { evaluateCampaigns } from './campaign-engine';
 
 export async function processWebhookPayload(organizationId: string, provider: string, payload: NormalizedWebhookPayload, rawBody: string) {
+    console.log(`[WebhookProcessor] Evento recebido: ${payload.eventType} (Status: ${payload.status}) para o pedido ${payload.externalOrderId}`);
+
     // 1. Lógica de Idempotência: verificar se evento já existe
     const orderEventKey = `${provider}_${payload.externalOrderId}_${payload.eventType}_${payload.status}`;
 

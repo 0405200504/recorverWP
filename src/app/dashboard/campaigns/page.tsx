@@ -69,7 +69,7 @@ export default async function CampaignsPage() {
                                             id={camp.id}
                                             name={camp.name}
                                             triggerEvent={JSON.parse(camp.triggerEventTypes)[0] || 'pix_generated'}
-                                            delayMinutes={camp.steps[0]?.delayMinutes || 10}
+                                            delaySeconds={camp.steps[0]?.delaySeconds || (camp.steps[0]?.delayMinutes ? camp.steps[0]?.delayMinutes * 60 : 0)}
                                             messageType={camp.steps[0]?.messageType || 'text'}
                                             textContent={camp.steps[0]?.contentText || ''}
                                             mediaUrl={camp.steps[0]?.mediaUrl || ''}
