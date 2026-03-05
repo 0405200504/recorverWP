@@ -84,6 +84,7 @@ export async function sendTextWithHumanBehavior(
 
     if (!res.ok) {
         const err = await res.text();
+        console.error(`[EvolutionAPI] Erro ao enviar texto para ${instanceName}:`, err);
         throw new Error(`Evolution API sendText error: ${err}`);
     }
 

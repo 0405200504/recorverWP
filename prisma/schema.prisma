@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,250 +8,215 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// ==========================================
-// A) AUTENTICAÇÃO E MULTI-TENANT
-// ==========================================
-
 model Organization {
-  id             String   @id @default(cuid())
-  name           String
-  timezone       String   @default("America/Sao_Paulo")
-  currency       String   @default("BRL")
-  webhook_secret String   @default(uuid())
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  users            Membership[]
-  whatsappNumbers  WhatsAppNumber[]
-  webhookConfigs   WebhookConfig[]
-  leads            Lead[]
-  orders           Order[]
-  campaigns        Campaign[]
-  runs             RecoveryRun[]
-  messages         Message[]
+  id                String             @id @default(dbgenerated("(gen_random_uuid())::text"))
+  name              String
+  timezone          String             @default("America/Sao_Paulo")
+  currency          String             @default("BRL")
+  webhook_secret    String             @default(dbgenerated("(gen_random_uuid())::text"))
+  createdAt         DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime           @default(now()) @updatedAt @db.Timestamptz(6)
+  campaigns         Campaign[]
+  leads             Lead[]
+  users             Membership[]
+  messages          Message[]
+  orders            Order[]
+  runs              RecoveryRun[]
+  webhookConfigs    WebhookConfig[]
+  whatsappNumbers   WhatsAppNumber[]
   whatsappTemplates WhatsAppTemplate[]
 }
 
 model User {
-  id            String       @id @default(cuid())
-  name          String?
-  email         String       @unique
-  passwordHash  String
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  memberships   Membership[]
+  id           String       @id @default(dbgenerated("(gen_random_uuid())::text"))
+  name         String?
+  email        String       @unique
+  passwordHash String
+  createdAt    DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime     @default(now()) @updatedAt @db.Timestamptz(6)
+  memberships  Membership[]
 }
 
 model Membership {
-  id             String       @id @default(cuid())
+  id             String       @id @default(dbgenerated("(gen_random_uuid())::text"))
   userId         String
   organizationId String
-  role           String       // "owner", "admin", "viewer"
-  createdAt      DateTime     @default(now())
-
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  role           String
+  createdAt      DateTime     @default(now()) @db.Timestamptz(6)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([userId, organizationId])
 }
 
 model WhatsAppNumber {
-  id             String       @id @default(cuid())
+  id             String       @id @default(dbgenerated("(gen_random_uuid())::text"))
   organizationId String
   phoneNumberId  String
   wabaId         String
-  accessToken    String       // Armazenar a string da API
+  accessToken    String
   displayName    String?
-  status         String       @default("active") // "active", "disconnected"
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  status         String       @default("active")
+  createdAt      DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime     @default(now()) @updatedAt @db.Timestamptz(6)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model WebhookConfig {
-  id             String   @id @default(cuid())
+  id             String       @id @default(dbgenerated("(gen_random_uuid())::text"))
   organizationId String
-  provider       String   // "hotmart", "kiwify", "cakto", "shopify", "custom", etc.
+  provider       String
   name           String
   clientId       String?
   clientSecret   String?
   webhookToken   String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime     @default(now()) @updatedAt @db.Timestamptz(6)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
-// ==========================================
-// C) LEADS E PEDIDOS
-// ==========================================
-
 model Lead {
-  id              String   @id @default(cuid())
+  id              String       @id @default(dbgenerated("(gen_random_uuid())::text"))
   organizationId  String
   name            String?
   phoneE164       String
   email           String?
-  consentWhatsapp Boolean  @default(false)
+  consentWhatsapp Boolean      @default(false)
   consentSource   String?
-  consentAt       DateTime?
-  tags            String?  // JSON list
-  lastSeenAt      DateTime @default(now())
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  orders       Order[]
-  messages     Message[]
+  consentAt       DateTime?    @db.Timestamptz(6)
+  tags            String?
+  lastSeenAt      DateTime     @default(now()) @db.Timestamptz(6)
+  createdAt       DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime     @default(now()) @updatedAt @db.Timestamptz(6)
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  messages        Message[]
+  orders          Order[]
 
   @@unique([organizationId, phoneE164])
 }
 
 model Order {
-  id               String   @id @default(cuid())
-  organizationId   String
-  leadId           String
-  externalOrderId  String
-  provider         String   // "hotmart", "kiwify", "cakto", "shopify", "custom"
-  status           String   // "started", "pending", "failed", "approved", "refunded"
-  paymentMethod    String?  // "pix", "boleto", "card"
-  amount           Float
-  currency         String   @default("BRL")
-  checkoutUrl      String?
-  pixCopyPaste     String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  lead         Lead          @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  events       OrderEvent[]
-  runs         RecoveryRun[]
-  messages     Message[]
+  id              String        @id @default(dbgenerated("(gen_random_uuid())::text"))
+  organizationId  String
+  leadId          String
+  externalOrderId String
+  provider        String
+  status          String
+  paymentMethod   String?
+  amount          Float
+  currency        String        @default("BRL")
+  checkoutUrl     String?
+  pixCopyPaste    String?
+  createdAt       DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime      @default(now()) @updatedAt @db.Timestamptz(6)
+  lead            Lead          @relation(fields: [leadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  events          OrderEvent[]
+  runs            RecoveryRun[]
 
   @@unique([organizationId, provider, externalOrderId])
 }
 
 model OrderEvent {
-  id                String   @id @default(cuid())
+  id                String   @id @default(dbgenerated("(gen_random_uuid())::text"))
   orderId           String
-  eventType         String   // "checkout_started", "pix_generated", etc.
-  rawPayload        String   // JSON string
-  normalizedPayload String   // JSON string
-  createdAt         DateTime @default(now())
-
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  eventType         String
+  rawPayload        String
+  normalizedPayload String
+  createdAt         DateTime @default(now()) @db.Timestamptz(6)
+  order             Order    @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
-// ==========================================
-// D) CAMPANHAS DE RECUPERAÇÃO
-// ==========================================
-
 model Campaign {
-  id                         String   @id @default(cuid())
+  id                         String        @id @default(dbgenerated("(gen_random_uuid())::text"))
   organizationId             String
   name                       String
-  active                     Boolean  @default(true)
-  triggerEventTypes          String   // JSON array de eventos (ex: ["pix_generated"])
-  matchingRules              String?  // JSON (oferta, valor_minimo, metodo_pagamento, etc)
-  stopOnEventTypes           String   // JSON array (ex: ["payment_approved", "refunded"])
-  maxAttemptsPerLeadPerOrder Int      @default(3)
-  createdAt                  DateTime @default(now())
-  updatedAt                  DateTime @updatedAt
-
-  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  steps        CadenceStep[]
-  runs         RecoveryRun[]
+  active                     Boolean       @default(true)
+  triggerEventTypes          String
+  matchingRules              String?
+  stopOnEventTypes           String
+  maxAttemptsPerLeadPerOrder Int           @default(3)
+  createdAt                  DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt                  DateTime      @default(now()) @updatedAt @db.Timestamptz(6)
+  steps                      CadenceStep[]
+  organization               Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  runs                       RecoveryRun[]
 }
 
 model CadenceStep {
-  id              String   @id @default(cuid())
-  campaignId      String
-  stepOrder       Int
-  delayMinutes    Int
-  messageType     String   // "freeform" ou "template"
-  templateName    String?
-  contentText     String?  // com placeholders
-  mediaUrl        String?
-  buttons         String?  // JSON array
-  sendOnlyIf      String   @default("qualquer") // "dentro_24h", "fora_24h", "qualquer"
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  campaign   Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  dispatches StepDispatch[]
+  id           String         @id @default(dbgenerated("(gen_random_uuid())::text"))
+  campaignId   String
+  stepOrder    Int
+  delayMinutes Int
+  messageType  String
+  templateName String?
+  contentText  String?
+  mediaUrl     String?
+  buttons      String?
+  sendOnlyIf   String         @default("qualquer")
+  createdAt    DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime       @default(now()) @updatedAt @db.Timestamptz(6)
+  campaign     Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  dispatches   StepDispatch[]
 }
 
-// ==========================================
-// E) MOTOR DE DISPARO (JOBS)
-// ==========================================
-
 model RecoveryRun {
-  id             String   @id @default(cuid())
+  id             String         @id @default(dbgenerated("(gen_random_uuid())::text"))
   organizationId String
   orderId        String
   campaignId     String
-  status         String   @default("scheduled") // "scheduled", "running", "stopped", "completed"
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  order        Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  campaign     Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  dispatches   StepDispatch[]
+  status         String         @default("scheduled")
+  createdAt      DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime       @default(now()) @updatedAt @db.Timestamptz(6)
+  campaign       Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  order          Order          @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  dispatches     StepDispatch[]
 
   @@unique([orderId, campaignId])
 }
 
 model StepDispatch {
-  id           String    @id @default(cuid())
+  id           String      @id @default(dbgenerated("(gen_random_uuid())::text"))
   runId        String
   stepId       String
-  scheduledFor DateTime
-  status       String    @default("pending") // "pending", "sent", "failed", "canceled", "skipped"
-  attempts     Int       @default(0)
+  scheduledFor DateTime    @db.Timestamptz(6)
+  status       String      @default("pending")
+  attempts     Int         @default(0)
   lastError    String?
-  sentAt       DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  run  RecoveryRun @relation(fields: [runId], references: [id], onDelete: Cascade)
-  step CadenceStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  sentAt       DateTime?   @db.Timestamptz(6)
+  createdAt    DateTime    @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime    @default(now()) @updatedAt @db.Timestamptz(6)
+  run          RecoveryRun @relation(fields: [runId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  step         CadenceStep @relation(fields: [stepId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model Message {
-  id             String   @id @default(cuid())
+  id             String       @id @default(dbgenerated("(gen_random_uuid())::text"))
   organizationId String
   leadId         String
   orderId        String?
-  direction      String   // "outbound", "inbound"
-  channel        String   @default("whatsapp")
-  waMessageId    String?  @unique
-  payload        String   // JSON com info da mensagem
-  status         String   @default("sent") // "sent", "delivered", "read", "failed", "received"
-  createdAt      DateTime @default(now())
-
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  lead         Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  order        Order?       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  direction      String
+  channel        String       @default("whatsapp")
+  waMessageId    String?      @unique
+  payload        String
+  status         String       @default("sent")
+  createdAt      DateTime     @default(now()) @db.Timestamptz(6)
+  lead           Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
-// ==========================================
-// WHATSAPP TEMPLATES
-// ==========================================
-
 model WhatsAppTemplate {
-  id              String   @id @default(cuid())
+  id              String       @id @default(dbgenerated("(gen_random_uuid())::text"))
   organizationId  String
   name            String
-  language        String   @default("pt_BR")
-  category        String   @default("MARKETING") // "UTILITY", "MARKETING"
-  status          String   @default("APPROVED")
-  sampleVariables String?  // JSON
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  language        String       @default("pt_BR")
+  category        String       @default("MARKETING")
+  status          String       @default("APPROVED")
+  sampleVariables String?
+  createdAt       DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime     @default(now()) @updatedAt @db.Timestamptz(6)
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([organizationId, name, language])
 }

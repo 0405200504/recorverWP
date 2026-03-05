@@ -76,11 +76,17 @@ export const customAdapter: WebhookProviderAdapter = {
             } else if (['refunded', 'reembolsado', 'devolvido', 'chargeback'].some(s => rawStatus.includes(s)) || rawEvent.includes('REFUND')) {
                 status = 'refunded';
                 eventType = 'refund';
-            } else if (['waiting', 'pending', 'aguardando', 'pendente', 'processing'].some(s => rawStatus.includes(s))) {
+            } else if (['waiting', 'pending', 'aguardando', 'pendente', 'processing', 'unpaid', 'atrasado'].some(s => rawStatus.includes(s)) || rawEvent.includes('PENDING') || rawEvent.includes('WAITING') || rawEvent.includes('BILLE') || rawEvent.includes('PIX')) {
                 status = 'pending';
-                const method = String(data.payment_method || data.payment?.method || data.method || '').toLowerCase();
-                if (method.includes('pix') || rawEvent.includes('PIX')) eventType = 'pix_generated';
-                else if (method.includes('billet') || method.includes('boleto') || rawEvent.includes('BILLET')) eventType = 'boleto_generated';
+                const method = String(data.payment_method || data.method || data.payment?.method || data.type || '').toLowerCase();
+                const pixKeys = ['pix', 'qrc', 'static'];
+                const boletoKeys = ['billet', 'boleto', 'bank_transfer', 'bol'];
+
+                if (method.includes('pix') || rawEvent.includes('PIX') || pixKeys.some(k => method.includes(k))) {
+                    eventType = 'pix_generated';
+                } else if (method.includes('billet') || method.includes('boleto') || rawEvent.includes('BILLET') || boletoKeys.some(k => method.includes(k))) {
+                    eventType = 'boleto_generated';
+                }
             } else if (rawEvent.includes('ABANDONED') || rawEvent.includes('CART') || rawEvent.includes('CHECKOUT')) {
                 status = 'started';
                 eventType = 'checkout_abandoned';

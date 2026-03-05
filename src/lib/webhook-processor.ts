@@ -71,17 +71,27 @@ export async function processWebhookPayload(organizationId: string, provider: st
         });
     }
 
-    // Verifica se o OrderEvent já foi processado
+    // Verifica se o OrderEvent já foi processado (Idempotência flexível)
     const existingEvent = await prisma.orderEvent.findFirst({
         where: {
             orderId: order.id,
             eventType: payload.eventType,
+        },
+        include: {
+            order: {
+                include: {
+                    runs: {
+                        where: { status: { in: ['scheduled', 'running'] } }
+                    }
+                }
+            }
         }
     });
 
-    if (existingEvent) {
-        console.log('[WebhookProcessor] Evento duplicado evitado:', existingEvent.id);
-        return { status: 'ignored', reason: 'idempotency' };
+    // Se já existe o evento MAS a jornada de recuperação dele parou ou falhou, permitimos re-tentar
+    if (existingEvent && existingEvent.order.runs.length > 0) {
+        console.log('[WebhookProcessor] Evento ignorado: Jornada de recuperação já está ativa para este evento.', existingEvent.id);
+        return { status: 'ignored', reason: 'idempotency_active_run' };
     }
 
     // Registra OrderEvent

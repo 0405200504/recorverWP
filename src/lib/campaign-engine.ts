@@ -37,16 +37,31 @@ export async function evaluateCampaigns(organizationId: string, orderId: string,
 
         // TODO: Evaluate matching rules here (e.g., minimum amount, specific offer)
 
-        // Create RecoveryRun se não existir para (orderId, campaignId)
+        // Busca RecoveryRun existente para (orderId, campaignId)
         const existingRun = await prisma.recoveryRun.findUnique({
             where: {
                 orderId_campaignId: { orderId, campaignId: campaign.id }
             }
         });
 
-        if (!existingRun) {
-            const run = await prisma.recoveryRun.create({
-                data: {
+        // Se a run já existe MAS está parada ou concluída, permitimos reiniciar
+        if (!existingRun || ['stopped', 'completed', 'failed'].includes(existingRun.status)) {
+            // Se já existia, deletamos os dispatches pendentes para evitar lixo
+            if (existingRun) {
+                await prisma.stepDispatch.deleteMany({
+                    where: { runId: existingRun.id, status: 'pending' }
+                });
+            }
+
+            const run = await prisma.recoveryRun.upsert({
+                where: {
+                    orderId_campaignId: { orderId, campaignId: campaign.id }
+                },
+                update: {
+                    status: 'scheduled',
+                    updatedAt: new Date()
+                },
+                create: {
                     organizationId,
                     orderId,
                     campaignId: campaign.id,
