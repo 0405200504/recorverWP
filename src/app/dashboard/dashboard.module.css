@@ -200,3 +200,152 @@
     background: rgba(202, 138, 4, 0.2);
     color: #facc15;
 }
+/* Shadcn UI Forms */
+.shadcnCard {
+    background-color: #09090b;
+    border: 1px solid #27272a;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    color: #fafafa;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.shadcnCardHeader {
+    display: flex;
+    flex-direction: column;
+    space-y: 1.5;
+    padding-bottom: 20px;
+}
+
+.shadcnCardTitle {
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: -0.025em;
+    color: #fafafa;
+    margin: 0;
+}
+
+.shadcnCardDescription {
+    font-size: 14px;
+    color: #a1a1aa;
+    margin: 6px 0 0 0;
+}
+
+.shadcnLabel {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1;
+    color: #fafafa;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.shadcnInput {
+    display: flex;
+    height: 40px;
+    width: 100%;
+    border-radius: 6px;
+    border: 1px solid #27272a;
+    background-color: transparent;
+    padding: 8px 12px;
+    font-size: 14px;
+    color: #fafafa;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+}
+.shadcnInput::placeholder {
+    color: #a1a1aa;
+}
+.shadcnInput:focus {
+    border-color: #fafafa;
+    box-shadow: 0 0 0 1px #fafafa;
+}
+
+.shadcnSelect {
+    display: flex;
+    height: 40px;
+    width: 100%;
+    border-radius: 6px;
+    border: 1px solid #27272a;
+    background-color: transparent;
+    padding: 8px 12px;
+    font-size: 14px;
+    color: #fafafa;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px;
+}
+.shadcnSelect:focus {
+    border-color: #fafafa;
+    box-shadow: 0 0 0 1px #fafafa;
+}
+.shadcnSelect option {
+    background-color: #09090b;
+    color: #fafafa;
+}
+
+.shadcnTextarea {
+    display: flex;
+    min-height: 80px;
+    width: 100%;
+    border-radius: 6px;
+    border: 1px solid #27272a;
+    background-color: transparent;
+    padding: 8px 12px;
+    font-size: 14px;
+    color: #fafafa;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+    resize: vertical;
+}
+.shadcnTextarea::placeholder {
+    color: #a1a1aa;
+}
+.shadcnTextarea:focus {
+    border-color: #fafafa;
+    box-shadow: 0 0 0 1px #fafafa;
+}
+
+.shadcnButtonPrimary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    height: 40px;
+    padding: 8px 16px;
+    background-color: #fafafa;
+    color: #18181b;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.shadcnButtonPrimary:hover {
+    background-color: #e4e4e7;
+}
+
+.shadcnButtonOutline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    height: 40px;
+    padding: 8px 16px;
+    background-color: transparent;
+    color: #fafafa;
+    border: 1px solid #27272a;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.shadcnButtonOutline:hover {
+    background-color: #27272a;
+}
