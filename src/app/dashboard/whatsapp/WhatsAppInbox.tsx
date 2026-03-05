@@ -46,14 +46,29 @@ export function WhatsAppEmbed() {
     const managerUrl = `${evoUrl}/manager/instance/${instanceId || instanceName}/?ngrok-skip-browser-warning=true`;
 
     return (
-        <div style={{ border: '1px solid #27272a', borderRadius: 12, overflow: 'hidden', height: 'calc(100vh - 160px)' }}>
-            <iframe
-                src={managerUrl}
-                style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
-                title="WhatsApp Web"
-                allow="clipboard-write; microphone; camera"
-                sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
-            />
+        <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 120px)' }}>
+            <div style={{ padding: '12px 16px', background: '#18181b', border: '1px solid #27272a', borderRadius: '12px 12px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 13, color: '#a1a1aa' }}>
+                    Visualizando WhatsApp de: <strong style={{ color: '#fff' }}>{instanceName}</strong>
+                </span>
+                <a
+                    href={managerUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ background: '#25D366', color: '#fff', padding: '6px 12px', borderRadius: 6, textDecoration: 'none', fontSize: 13, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}
+                >
+                    Apareceu um aviso ou erro? Abrir em Nova Guia ↗
+                </a>
+            </div>
+            <div style={{ border: '1px solid #27272a', borderTop: 'none', borderRadius: '0 0 12px 12px', overflow: 'hidden', flex: 1 }}>
+                <iframe
+                    src={managerUrl}
+                    style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+                    title="WhatsApp Web"
+                    allow="clipboard-write; microphone; camera"
+                    sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
+                />
+            </div>
         </div>
     );
 }
