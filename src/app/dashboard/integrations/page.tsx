@@ -6,6 +6,7 @@ import { AddWhatsAppButton, DeleteWhatsAppButton } from './WhatsAppClient';
 import { WebhookGridClient } from './WebhookGridClient';
 import { EditWebhookSecretButton } from './WebhookClient';
 import { EventFeed } from './EventFeed';
+import { WhatsAppStatusBadge } from './WhatsAppStatusBadge';
 
 
 export default async function IntegrationsPage() {
@@ -70,11 +71,9 @@ export default async function IntegrationsPage() {
                             <div style={{ position: 'absolute', top: '16px', right: '16px' }}>
                                 <DeleteWhatsAppButton id={wn.id} />
                             </div>
-                            <p style={{ margin: '0 0 8px 0', fontWeight: '600', color: '#ffffff' }}>📱 {wn.displayName}</p>
-                            <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#a1a1aa' }}>Sessão: {wn.phoneNumberId}</p>
-                            <p style={{ margin: '0 0 8px 0', fontSize: '14px' }}>
-                                Status: <span className={`${styles.statusBadge} ${wn.status === 'active' ? styles.statusActive : styles.statusInactive}`}>{wn.status}</span>
-                            </p>
+                            <p style={{ margin: '0 0 6px 0', fontWeight: '600', color: '#ffffff', fontSize: 15 }}>📱 {wn.displayName}</p>
+                            <p style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#71717a' }}>Sessão: {wn.phoneNumberId}</p>
+                            <WhatsAppStatusBadge instanceName={wn.phoneNumberId} />
                         </div>
                     ))}
                     {org.whatsappNumbers.length === 0 && <p style={{ fontSize: '14px', color: '#a1a1aa' }}>Nenhum número configurado para enviar mensagens.</p>}

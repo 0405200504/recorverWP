@@ -6,7 +6,7 @@ import { addWhatsAppNumber, deleteWhatsAppNumber } from '../actions';
 
 export function AddWhatsAppButton() {
     const [isOpen, setIsOpen] = useState(false);
-    const [phase, setPhase] = useState<'form' | 'loading' | 'qr' | 'connected'>('form');
+    const [phase, setPhase] = useState<'form' | 'loading' | 'qr' | 'connecting' | 'connected'>('form');
     const [instanceName, setInstanceName] = useState('');
     const [qrBase64, setQrBase64] = useState('');
     const [error, setError] = useState('');
@@ -67,12 +67,17 @@ export function AddWhatsAppButton() {
 
 
 
+    const [connectingStartedAt, setConnectingStartedAt] = useState<number | null>(null);
+
     const checkStatus = useCallback(async () => {
-        if (phase !== 'qr' || !instanceName) return;
+        if (!instanceName || (phase !== 'qr' && phase !== 'connecting')) return;
         try {
             const res = await fetch(`/api/whatsapp/instance?name=${encodeURIComponent(instanceName)}`);
             const data = await res.json();
-            if (data?.instance?.state === 'open') {
+            const state: string = data?.instance?.state ?? data?.state ?? '';
+
+            if (state === 'open') {
+                // CONECTADO de verdade
                 setPhase('connected');
                 await addWhatsAppNumber({
                     phoneNumberId: instanceName,
@@ -81,13 +86,25 @@ export function AddWhatsAppButton() {
                     displayName: data?.instance?.profileName || instanceName
                 });
                 setTimeout(handleClose, 2500);
+            } else if (state === 'connecting' && phase === 'qr') {
+                // QR foi escaneado, aguardando autenticação
+                setPhase('connecting');
+                setConnectingStartedAt(Date.now());
+            } else if (phase === 'connecting') {
+                // Verificar timeout: se ficou mais de 45s em 'connecting', voltar ao QR
+                if (connectingStartedAt && Date.now() - connectingStartedAt > 45_000) {
+                    setPhase('qr');
+                    setConnectingStartedAt(null);
+                    setError('Conexão demorou demais. Aguarde o QR atualizar e escaneie novamente.');
+                }
             }
-        } catch { /* ignora */ }
-    }, [phase, instanceName]);
+        } catch { /* ignora erro de rede */ }
+    }, [phase, instanceName, connectingStartedAt]);
 
     useEffect(() => {
-        if (phase !== 'qr') return;
-        const iv = setInterval(checkStatus, 4000);
+        if (phase !== 'qr' && phase !== 'connecting') return;
+        // Polling mais frequente: a cada 3s para pegar o 'open' rapidamente
+        const iv = setInterval(checkStatus, 3000);
         return () => clearInterval(iv);
     }, [phase, checkStatus]);
 
@@ -164,6 +181,17 @@ export function AddWhatsAppButton() {
                         <button onClick={handleClose} style={{ background: 'transparent', border: '1px solid #27272a', borderRadius: 8, color: '#71717a', padding: '8px 20px', cursor: 'pointer', fontSize: 13 }}>
                             Cancelar
                         </button>
+                    </div>
+                )}
+
+                {phase === 'connecting' && (
+                    <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                        <div style={{ width: 44, height: 44, border: '3px solid #27272a', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
+                        <h3 style={{ color: '#fff', margin: '0 0 8px', fontSize: 18 }}>Sincronizando...</h3>
+                        <p style={{ color: '#a1a1aa', fontSize: 13, margin: '0 0 16px', lineHeight: 1.5 }}>
+                            O WhatsApp está conectando. <strong>Por favor, aguarde e não feche o aplicativo no seu celular.</strong>
+                        </p>
+                        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
                     </div>
                 )}
 
