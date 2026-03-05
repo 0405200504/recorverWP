@@ -120,6 +120,35 @@ export async function addCampaign(data: { name: string, triggerEvent: string, de
     revalidatePath('/dashboard/campaigns');
 }
 
+export async function updateCampaign(id: string, data: { name: string, triggerEvent: string, delayMinutes: number, messageType: string, textContent: string, mediaUrl: string }) {
+    const orgId = await getOrgId();
+    const campaign = await prisma.campaign.findUnique({ where: { id, organizationId: orgId }, include: { steps: true } });
+    if (!campaign) throw new Error('Campanha não encontrada');
+
+    await prisma.campaign.update({
+        where: { id },
+        data: {
+            name: data.name,
+            triggerEventTypes: JSON.stringify([data.triggerEvent]),
+        }
+    });
+
+    // Atualiza o primeiro step
+    if (campaign.steps[0]) {
+        await prisma.cadenceStep.update({
+            where: { id: campaign.steps[0].id },
+            data: {
+                delayMinutes: data.delayMinutes,
+                messageType: data.messageType,
+                contentText: data.messageType === 'text' ? data.textContent : null,
+                mediaUrl: data.messageType === 'audio' ? data.mediaUrl : null,
+            }
+        });
+    }
+    revalidatePath('/dashboard/campaigns');
+}
+
+
 export async function deleteCampaign(id: string) {
     const orgId = await getOrgId();
     // Apagar steps primeiro (simulando cascade)

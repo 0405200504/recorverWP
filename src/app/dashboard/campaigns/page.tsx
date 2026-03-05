@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import styles from '../dashboard.module.css';
-import { AddCampaignButton, DeleteCampaignButton } from './CampaignClient';
+import { AddCampaignButton, DeleteCampaignButton, EditCampaignButton } from './CampaignClient';
 
 export default async function CampaignsPage() {
     const session = await getServerSession(authOptions) as any;
@@ -64,7 +64,18 @@ export default async function CampaignsPage() {
                                 </td>
                                 <td className={styles.td}>{camp._count.runs} funis acionados</td>
                                 <td className={styles.td}>
-                                    <DeleteCampaignButton id={camp.id} />
+                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                        <EditCampaignButton
+                                            id={camp.id}
+                                            name={camp.name}
+                                            triggerEvent={JSON.parse(camp.triggerEventTypes)[0] || 'pix_generated'}
+                                            delayMinutes={camp.steps[0]?.delayMinutes || 10}
+                                            messageType={camp.steps[0]?.messageType || 'text'}
+                                            textContent={camp.steps[0]?.contentText || ''}
+                                            mediaUrl={camp.steps[0]?.mediaUrl || ''}
+                                        />
+                                        <DeleteCampaignButton id={camp.id} />
+                                    </div>
                                 </td>
                             </tr>
                         ))}
