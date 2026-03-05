@@ -349,3 +349,114 @@
 .shadcnButtonOutline:hover {
     background-color: #27272a;
 }
+
+/* Avatar Group (Shadcn style) */
+.avatarGroupContainer {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+.avatarGroup {
+    display: flex;
+    align-items: center;
+}
+
+.avatar {
+    position: relative;
+    display: flex;
+    height: 40px;
+    width: 40px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 50%;
+    border: 2px solid #000000;
+    background-color: #27272a;
+    margin-left: -12px;
+}
+
+.avatar:first-child {
+    margin-left: 0;
+}
+
+.avatarImage {
+    aspect-ratio: 1;
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+}
+
+.avatarFallback {
+    display: flex;
+    height: 100%;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: #18181b;
+    color: #fafafa;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.avatarBadge {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    height: 12px;
+    width: 12px;
+    border-radius: 50%;
+    border: 2px solid #000000;
+    background-color: #16a34a; /* green-600 */
+}
+
+/* Field Layouts (Shadcn style) */
+.fieldGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+}
+
+.fieldSet {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    border: none;
+}
+
+.fieldLegend {
+    font-size: 16px;
+    font-weight: 600;
+    color: #fafafa;
+    line-height: 1.4;
+    margin-bottom: 4px;
+}
+
+.fieldDescription {
+    font-size: 14px;
+    color: #a1a1aa;
+    line-height: 1.4;
+    margin-top: -4px;
+    margin-bottom: 12px;
+}
+
+.fieldRow {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.fieldSeparator {
+    height: 1px;
+    width: 100%;
+    background-color: #27272a;
+    margin: 8px 0;
+}

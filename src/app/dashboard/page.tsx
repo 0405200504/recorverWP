@@ -35,9 +35,36 @@ export default async function DashboardPage() {
             </div>
 
             <div className={styles.header}>
-                <div>
-                    <h1 className={styles.title}>Visão Geral</h1>
-                    <p className={styles.subtitle}>Métricas de desempenho da sua operação de recuperação (Últimos 30 dias)</p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px' }}>
+                    <div>
+                        <h1 className={styles.title}>Visão Geral</h1>
+                        <p className={styles.subtitle}>Métricas de desempenho da sua operação de recuperação (Últimos 30 dias)</p>
+                    </div>
+
+                    {/* Shadcn Avatar Group */}
+                    <div className={styles.avatarGroupContainer} style={{ marginBottom: 0 }}>
+                        <div className={styles.avatar}>
+                            <img src="https://github.com/shadcn.png" alt="@shadcn" className={`${styles.avatarImage} grayscale`} style={{ filter: 'grayscale(100%)' }} />
+                        </div>
+                        <div className={styles.avatar}>
+                            <img src="https://github.com/evilrabbit.png" alt="@evilrabbit" className={styles.avatarImage} />
+                            <span className={styles.avatarBadge}></span>
+                        </div>
+                        <div className={styles.avatarGroup} style={{ filter: 'grayscale(100%)' }}>
+                            <div className={styles.avatar}>
+                                <img src="https://github.com/shadcn.png" alt="@shadcn" className={styles.avatarImage} />
+                            </div>
+                            <div className={styles.avatar}>
+                                <img src="https://github.com/maxleiter.png" alt="@maxleiter" className={styles.avatarImage} />
+                            </div>
+                            <div className={styles.avatar}>
+                                <img src="https://github.com/evilrabbit.png" alt="@evilrabbit" className={styles.avatarImage} />
+                            </div>
+                            <div className={styles.avatar} style={{ backgroundColor: '#18181b', color: '#fafafa' }}>
+                                +3
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div className={styles.grid}>

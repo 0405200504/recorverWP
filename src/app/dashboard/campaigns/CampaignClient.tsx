@@ -66,75 +66,89 @@ export function AddCampaignButton() {
                 <h4 className={styles.shadcnCardTitle}>Criar Nova Campanha de Automação</h4>
                 <p className={styles.shadcnCardDescription}>Preencha os dados abaixo para configurar os disparos.</p>
             </div>
-            <form onSubmit={handleAdd} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <form onSubmit={handleAdd} className={styles.fieldGroup}>
+                <div className={styles.fieldSet}>
+                    <h5 className={styles.fieldLegend}>Detalhes Essenciais</h5>
+                    <p className={styles.fieldDescription}>
+                        Identificação básica e disparo da campanha.
+                    </p>
+                    <div className={styles.fieldGroup}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <label className={styles.shadcnLabel}>Nome da Campanha</label>
+                            <input required placeholder="Ex: Recuperação Pix - 10 minutos" className={styles.shadcnInput} value={name} onChange={e => setName(e.target.value)} />
+                        </div>
 
-                {/* Nome da campanha */}
-                <div>
-                    <label className={styles.shadcnLabel}>Nome da Campanha</label>
-                    <input required placeholder="Ex: Recuperação Pix - 10 minutos" className={styles.shadcnInput} value={name} onChange={e => setName(e.target.value)} />
-                </div>
-
-                {/* Gatilho / Finalidade */}
-                <div>
-                    <label className={styles.shadcnLabel}>
-                        Finalidade / Gatilho de Disparo
-                    </label>
-                    <select
-                        className={styles.shadcnSelect}
-                        value={triggerEvent}
-                        onChange={e => setTriggerEvent(e.target.value)}
-                    >
-                        {TRIGGER_OPTIONS.map(opt => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))}
-                    </select>
-                    {selectedTrigger && (
-                        <p className={styles.shadcnHelperText}>
-                            {selectedTrigger?.desc}
-                        </p>
-                    )}
-                </div>
-
-                {/* Atraso e Formato */}
-                <div style={{ display: 'flex', gap: '12px' }}>
-                    <div style={{ flex: 1 }}>
-                        <label className={styles.shadcnLabel}>Atraso no Disparo (minutos)</label>
-                        <input required type="number" min="0" placeholder="0" className={styles.shadcnInput} value={delayMinutes} onChange={e => setDelayMinutes(e.target.value)} />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                        <label className={styles.shadcnLabel}>Formato da Mensagem</label>
-                        <select className={styles.shadcnSelect} value={messageType} onChange={e => setMessageType(e.target.value as any)}>
-                            <option value="text">Texto</option>
-                            <option value="audio">Áudio (URL)</option>
-                        </select>
+                        <div className={styles.fieldRow}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <label className={styles.shadcnLabel}>
+                                    Finalidade / Gatilho de Disparo
+                                </label>
+                                <select
+                                    className={styles.shadcnSelect}
+                                    value={triggerEvent}
+                                    onChange={e => setTriggerEvent(e.target.value)}
+                                >
+                                    {TRIGGER_OPTIONS.map(opt => (
+                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                    ))}
+                                </select>
+                                {selectedTrigger && (
+                                    <p className={styles.fieldDescription} style={{ marginBottom: 0, marginTop: '4px' }}>
+                                        {selectedTrigger?.desc}
+                                    </p>
+                                )}
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <label className={styles.shadcnLabel}>Atraso no Disparo (minutos)</label>
+                                <input required type="number" min="0" placeholder="0" className={styles.shadcnInput} value={delayMinutes} onChange={e => setDelayMinutes(e.target.value)} />
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                {/* Conteúdo */}
-                <div>
-                    {messageType === 'text' ? (
-                        <>
-                            <label className={styles.shadcnLabel}>
-                                Conteúdo do Texto <span style={{ color: '#71717a', fontWeight: 'normal' }}>(use {'{{nome}}'}, {'{{produto}}'}, {'{{link}}'} para variáveis)</span>
-                            </label>
-                            <textarea
-                                required
-                                rows={3}
-                                placeholder="Oi {{nome}}! Vi que você não finalizou o pagamento do {{produto}}. Seu pix ainda está disponível! Clique aqui: {{link}}"
-                                className={styles.shadcnTextarea}
-                                value={textContent}
-                                onChange={e => setTextContent(e.target.value)}
-                            />
-                        </>
-                    ) : (
-                        <>
-                            <label className={styles.shadcnLabel}>URL do Áudio (.mp3 / .ogg)</label>
-                            <input required type="url" placeholder="https://seudominio.com/audio.mp3" className={styles.shadcnInput} value={mediaUrl} onChange={e => setMediaUrl(e.target.value)} />
-                        </>
-                    )}
+                <div className={styles.fieldSeparator} />
+
+                <div className={styles.fieldSet}>
+                    <h5 className={styles.fieldLegend}>Conteúdo da Mensagem</h5>
+                    <p className={styles.fieldDescription}>
+                        Defina o formato e a mídia que será disparada ao cliente.
+                    </p>
+                    <div className={styles.fieldGroup}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <label className={styles.shadcnLabel}>Formato da Mensagem</label>
+                            <select className={styles.shadcnSelect} value={messageType} onChange={e => setMessageType(e.target.value as any)}>
+                                <option value="text">Texto</option>
+                                <option value="audio">Áudio (URL)</option>
+                            </select>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {messageType === 'text' ? (
+                                <>
+                                    <label className={styles.shadcnLabel}>Conteúdo do Texto</label>
+                                    <textarea
+                                        required
+                                        rows={3}
+                                        placeholder="Oi {{nome}}! Vi que você não finalizou o pagamento do {{produto}}. Seu pix ainda está disponível! Clique aqui: {{link}}"
+                                        className={styles.shadcnTextarea}
+                                        value={textContent}
+                                        onChange={e => setTextContent(e.target.value)}
+                                    />
+                                    <p className={styles.fieldDescription} style={{ marginBottom: 0, marginTop: '4px' }}>
+                                        Variáveis compatíveis: {'{{nome}}'}, {'{{produto}}'}, {'{{link}}'}
+                                    </p>
+                                </>
+                            ) : (
+                                <>
+                                    <label className={styles.shadcnLabel}>URL do Áudio (.mp3 / .ogg)</label>
+                                    <input required type="url" placeholder="https://seudominio.com/audio.mp3" className={styles.shadcnInput} value={mediaUrl} onChange={e => setMediaUrl(e.target.value)} />
+                                </>
+                            )}
+                        </div>
+                    </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '8px' }}>
+                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '16px' }}>
                     <button type="button" onClick={() => setIsOpen(false)} className={styles.shadcnButtonOutline} disabled={loading}>Cancelar</button>
                     <button type="submit" className={styles.shadcnButtonPrimary} disabled={loading}>
                         {loading ? 'Salvando...' : 'Salvar Campanha'}
