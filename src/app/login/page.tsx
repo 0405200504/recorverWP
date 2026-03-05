@@ -1,9 +1,11 @@
 'use client';
 import { signIn } from 'next-auth/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import styles from './page.module.css';
+import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
+    const router = useRouter();
     const [isLogin, setIsLogin] = useState(true);
 
     const [name, setName] = useState('');
@@ -21,18 +23,28 @@ export default function LoginPage() {
         setSuccessMsg('');
 
         if (isLogin) {
-            const res = await signIn('credentials', {
-                email,
-                password,
-                redirect: false,
-                callbackUrl: '/dashboard'
-            });
+            try {
+                const res = await signIn('credentials', {
+                    email,
+                    password,
+                    redirect: false,
+                    callbackUrl: '/dashboard'
+                });
 
-            if (res?.error) {
-                setError('Credenciais inválidas. Tente novamente.');
+                if (res?.error) {
+                    setError('Credenciais inválidas. Tente novamente.');
+                    setLoading(false);
+                } else if (res?.ok) {
+                    // Redirecionamento robusto
+                    window.location.href = res.url || '/dashboard';
+                } else {
+                    // Fallback para caso raro de res ser indefinido
+                    setError('Erro inesperado ao tentar entrar.');
+                    setLoading(false);
+                }
+            } catch (err) {
+                setError('Erro de conexão. Tente novamente.');
                 setLoading(false);
-            } else if (res?.url) {
-                window.location.href = res.url;
             }
         } else {
             // Executa cadastro
