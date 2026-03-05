@@ -1,53 +1,114 @@
 import crypto from 'crypto';
 import { WebhookProviderAdapter, NormalizedWebhookPayload } from '../types/webhook';
 
+/**
+ * Adaptador Universal Inteligente
+ * Tenta normalizar payloads de diversas plataformas de checkout (Kiwify, Cakto, Shopify, etc)
+ * utilizando uma lógica de busca por chaves comuns e heurística de status.
+ */
 export const customAdapter: WebhookProviderAdapter = {
     verifySignature(payload: string, signature: string, secret: string): boolean {
-        if (!signature || !secret) return false;
-        const expectedSignature = crypto
-            .createHmac('sha256', secret)
-            .update(payload)
-            .digest('hex');
-        return signature === expectedSignature;
+        // Se não houver secret configurado, assume que é válido (facilitando configuração inicial)
+        if (!secret) return true;
+        if (!signature) return false;
+
+        try {
+            const expectedSignature = crypto
+                .createHmac('sha256', secret)
+                .update(payload)
+                .digest('hex');
+            return signature === expectedSignature;
+        } catch {
+            return false;
+        }
     },
 
     normalize(rawPayload: Record<string, any>): NormalizedWebhookPayload | null {
         try {
-            // Flexible extraction for Custom/Cakto/Others
-            const evtId = rawPayload.order_id || rawPayload.transaction?.id || rawPayload.id || `evt_${Date.now()}`;
-            const customerName = rawPayload.customer?.name || rawPayload.client?.name || rawPayload.name || 'Cliente Desconhecido';
-            const customerPhone = rawPayload.customer?.phone || rawPayload.client?.phone || rawPayload.phone || '00000000000';
-            const customerEmail = rawPayload.customer?.email || rawPayload.client?.email || rawPayload.email || 'sem@email.com';
+            // Tenta achar o corpo real (alguns enviam dentro de 'data' ou 'payload')
+            const data = rawPayload.data || rawPayload.payload || rawPayload.body || rawPayload;
 
-            const eventType = rawPayload.event_type || rawPayload.event || 'unknown';
-            const status = rawPayload.status || rawPayload.transaction?.status || 'pending';
-            const amount = Number(rawPayload.payment?.amount || rawPayload.transaction?.amount || rawPayload.amount) || 0;
+            // 1. Extração do ID do Pedido
+            const extId = String(
+                data.order_id ||
+                data.order_number ||
+                data.transaction?.id ||
+                data.purchase?.transaction ||
+                data.id ||
+                data.transaction_id ||
+                data.checkout_id ||
+                `evt_${Date.now()}`
+            );
+
+            // 2. Extração do Cliente (Nome, Email, Telefone)
+            const customer = data.customer || data.client || data.buyer || data.cliente || data;
+            const name = customer.name || customer.full_name || customer.nome || customer.first_name || 'Cliente';
+            const email = customer.email || customer.email_address || customer.contact_email || 'sem@email.com';
+
+            // Telefone: tenta várias chaves comuns
+            let phone = String(
+                customer.phone ||
+                customer.mobile ||
+                customer.telephone ||
+                customer.phone_number ||
+                customer.checkout_phone ||
+                customer.whatsapp ||
+                customer.whatsapp_number ||
+                data.phone ||
+                data.mobile ||
+                ''
+            ).replace(/\D/g, '');
+
+            // 3. Mapeamento de Status e Evento
+            const rawStatus = String(data.status || data.order_status || data.purchase?.status || data.transaction?.status || data.financial_status || '').toLowerCase();
+            const rawEvent = String(data.event || data.event_type || data.eventType || data.type || '').toUpperCase();
+
+            let status: any = 'pending';
+            let eventType: any = 'order_created';
+
+            // Lógica Heurística para Status/Evento
+            if (['approved', 'paid', 'pago', 'concluida', 'sucesso', 'complete', 'confirmed', 'vendido', 'success'].some(s => rawStatus.includes(s)) || rawEvent.includes('APPROVED') || rawEvent.includes('PAID')) {
+                status = 'approved';
+                eventType = 'payment_approved';
+            } else if (['refused', 'canceled', 'cancelado', 'failed', 'rejeitado', 'error', 'declined', 'rejeitada'].some(s => rawStatus.includes(s)) || rawEvent.includes('DECLINED') || rawEvent.includes('FAILED')) {
+                status = 'failed';
+                eventType = 'payment_failed';
+            } else if (['refunded', 'reembolsado', 'devolvido', 'chargeback'].some(s => rawStatus.includes(s)) || rawEvent.includes('REFUND')) {
+                status = 'refunded';
+                eventType = 'refund';
+            } else if (['waiting', 'pending', 'aguardando', 'pendente', 'processing'].some(s => rawStatus.includes(s))) {
+                status = 'pending';
+                const method = String(data.payment_method || data.payment?.method || data.method || '').toLowerCase();
+                if (method.includes('pix') || rawEvent.includes('PIX')) eventType = 'pix_generated';
+                else if (method.includes('billet') || method.includes('boleto') || rawEvent.includes('BILLET')) eventType = 'boleto_generated';
+            } else if (rawEvent.includes('ABANDONED') || rawEvent.includes('CART') || rawEvent.includes('CHECKOUT')) {
+                status = 'started';
+                eventType = 'checkout_abandoned';
+            }
+
+            // 4. Valores Monetários
+            const amount = Number(data.amount || data.price || data.total || data.total_price || data.payment?.amount || data.purchase?.price?.value || 0);
 
             return {
-                externalOrderId: String(evtId),
-                externalCheckoutId: rawPayload.checkout_id || '',
+                externalOrderId: extId,
                 lead: {
-                    name: customerName,
-                    phoneE164: customerPhone,
-                    email: customerEmail,
-                },
-                product: {
-                    id: rawPayload.product?.id || 'prod_1',
-                    name: rawPayload.product?.name || 'Produto Principal',
+                    name: name,
+                    phoneE164: phone,
+                    email: email,
                 },
                 payment: {
                     amount: amount,
-                    currency: rawPayload.payment?.currency || rawPayload.transaction?.currency || 'BRL',
-                    method: rawPayload.payment?.method || rawPayload.transaction?.payment_type || 'other',
+                    currency: data.currency || data.payment?.currency || 'BRL',
+                    method: (data.payment_method || data.method || data.payment?.method || 'other').toLowerCase() as any,
                 },
                 status: status,
                 eventType: eventType,
-                timestamp: rawPayload.timestamp || rawPayload.created_at || new Date().toISOString(),
-                checkoutUrl: rawPayload.checkout_url || '',
-                pixCopyPaste: rawPayload.pix_code || rawPayload.transaction?.pix_qrcode || '',
+                timestamp: data.created_at || data.timestamp || data.updated_at || new Date().toISOString(),
+                checkoutUrl: data.checkout_url || data.url || data.checkout_payment_url || undefined,
+                pixCopyPaste: data.pix_code || data.pix_qrcode || data.pixCopyPaste || data.transaction?.pix_qrcode || undefined,
             };
         } catch (error) {
-            console.error('Error normalizing custom payload', error);
+            console.error('[UniversalAdapter] Erro ao normalizar payload:', error);
             return null;
         }
     },

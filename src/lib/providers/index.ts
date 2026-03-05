@@ -10,7 +10,14 @@ export const shopifyAdapter: WebhookProviderAdapter = customAdapter;
 export const providers: Record<string, WebhookProviderAdapter> = {
     custom: customAdapter,
     hotmart: hotmartAdapter,
-    kiwify: kiwifyAdapter,
-    cakto: caktoAdapter,
-    shopify: shopifyAdapter,
+    kiwify: customAdapter,
+    cakto: customAdapter,
+    shopify: customAdapter,
+    cloudfy: customAdapter,
+    kuenha: customAdapter,
+    ninjapay: customAdapter,
+    xgrow: customAdapter,
+    ggcheckout: customAdapter,
+    panteracheckout: customAdapter,
+    nublapay: customAdapter,
 };
