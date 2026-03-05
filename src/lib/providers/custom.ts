@@ -3,7 +3,7 @@ import { WebhookProviderAdapter, NormalizedWebhookPayload } from '../types/webho
 
 /**
  * Adaptador Universal Inteligente
- * Tenta normalizar payloads de diversas plataformas de checkout (Kiwify, Cakto, Shopify, etc)
+ * Tenta normalizar payloads de diversas plataformas de checkout (Kiwify, Cakto, Hubla, Hotmart, etc)
  * utilizando uma lógica de busca por chaves comuns e heurística de status.
  */
 export const customAdapter: WebhookProviderAdapter = {
@@ -60,41 +60,55 @@ export const customAdapter: WebhookProviderAdapter = {
             ).replace(/\D/g, '');
 
             // 3. Mapeamento de Status e Evento
-            const rawStatus = String(data.status || data.order_status || data.purchase?.status || data.transaction?.status || data.financial_status || '').toLowerCase();
+            const rawStatus = String(data.status || data.order_status || data.purchase?.status || data.transaction?.status || data.financial_status || data.state || '').toLowerCase();
             const rawEvent = String(data.event || data.event_type || data.eventType || data.type || '').toUpperCase();
-            const method = String(data.payment_method || data.paymentMethod || data.method || data.payment?.method || data.type || '').toLowerCase();
+            const method = String(data.payment_method || data.paymentMethod || data.method || data.payment?.method || data.payment_type || data.type || '').toLowerCase();
 
             let status: any = 'pending';
             let eventType: any = 'order_created';
 
-            // Lógica Heurística para Status/Evento
-            if (['approved', 'paid', 'pago', 'concluida', 'sucesso', 'complete', 'confirmed', 'vendido', 'success'].some(s => rawStatus.includes(s)) || rawEvent.includes('APPROVED') || rawEvent.includes('PAID')) {
+            // Heurística de Sucesso (Pago)
+            const successTerms = ['approved', 'paid', 'pago', 'concluida', 'sucesso', 'complete', 'confirmed', 'vendido', 'success', 'aprovada', 'integral'];
+            if (successTerms.some(s => rawStatus.includes(s)) || rawEvent.includes('APPROVED') || rawEvent.includes('PAID') || rawEvent.includes('COMPLETE')) {
                 status = 'approved';
                 eventType = 'payment_approved';
-            } else if (['refused', 'canceled', 'cancelado', 'failed', 'rejeitado', 'error', 'declined', 'rejeit'].some(s => rawStatus.includes(s)) || rawEvent.includes('DECLINED') || rawEvent.includes('FAILED')) {
+            }
+            // Heurística de Falha / Cancelamento
+            else if (['refused', 'canceled', 'cancelado', 'failed', 'rejeitado', 'error', 'declined', 'rejeit', 'recusado', 'expired', 'expirado'].some(s => rawStatus.includes(s)) || rawEvent.includes('DECLINED') || rawEvent.includes('FAILED') || rawEvent.includes('CANCELED')) {
                 status = 'failed';
                 eventType = 'payment_failed';
-            } else if (['refunded', 'reembolsado', 'devolvido', 'chargeback'].some(s => rawStatus.includes(s)) || rawEvent.includes('REFUND')) {
+            }
+            // Heurística de Reembolso
+            else if (['refunded', 'reembolsado', 'devolvido', 'chargeback', 'estornado'].some(s => rawStatus.includes(s)) || rawEvent.includes('REFUND') || rawEvent.includes('CHARGEBACK')) {
                 status = 'refunded';
                 eventType = 'refund';
-            } else if (['waiting', 'pending', 'aguardando', 'pendente', 'processing', 'unpaid', 'atrasado'].some(s => rawStatus.includes(s)) || rawEvent.includes('PENDING') || rawEvent.includes('WAITING') || rawEvent.includes('BILLE') || rawEvent.includes('PIX') || rawEvent.includes('GERADO')) {
+            }
+            // Heurística de Aguardando (Pix / Boleto / Fatura Criada)
+            else if (['waiting', 'pending', 'aguardando', 'pendente', 'processing', 'unpaid', 'atrasado', 'created', 'criada', 'gerada', 'new'].some(s => rawStatus.includes(s)) ||
+                rawEvent.includes('PENDING') || rawEvent.includes('WAITING') || rawEvent.includes('CREATED') || rawEvent.includes('GERADA') || rawEvent.includes('GERADO') ||
+                rawEvent.includes('PIX') || rawEvent.includes('BOLETO') || rawEvent.includes('BILLET') || rawEvent.includes('INVOICE')) {
+
                 status = 'pending';
 
-                const pixKeys = ['pix', 'qrc', 'static'];
-                const boletoKeys = ['billet', 'boleto', 'bank_transfer', 'bol', 'bil'];
+                const isPix = method.includes('pix') || rawEvent.includes('PIX') || ['pix', 'qrc', 'static'].some(k => method.includes(k));
+                const isBoleto = method.includes('billet') || method.includes('boleto') || rawEvent.includes('BILLET') || rawEvent.includes('BOLETO') || ['billet', 'boleto', 'bank_transfer', 'bol', 'bil'].some(k => method.includes(k));
 
-                if (method.includes('pix') || rawEvent.includes('PIX') || pixKeys.some(k => method.includes(k))) {
+                if (isPix) {
                     eventType = 'pix_generated';
-                } else if (method.includes('billet') || method.includes('boleto') || rawEvent.includes('BILLET') || rawEvent.includes('BOLETO') || boletoKeys.some(k => method.includes(k))) {
+                } else if (isBoleto) {
                     eventType = 'boleto_generated';
+                } else {
+                    eventType = 'order_created';
                 }
-            } else if (rawEvent.includes('ABANDONED') || rawEvent.includes('CART') || rawEvent.includes('CHECKOUT') || rawEvent.includes('ABANDONO')) {
+            }
+            // Heurística de Abandono (Urgente)
+            else if (rawEvent.includes('ABANDONED') || rawEvent.includes('CART') || rawEvent.includes('CHECKOUT') || rawEvent.includes('ABANDONO') || rawEvent.includes('CARRINHO') || rawEvent.includes('OUT_OF_SHOPPING_CART')) {
                 status = 'started';
                 eventType = 'checkout_abandoned';
             }
 
             // 4. Valores Monetários
-            const amount = Number(data.amount || data.price || data.total || data.total_price || data.payment?.amount || data.purchase?.price?.value || 0);
+            const amount = Number(data.amount || data.price || data.total || data.total_price || data.payment?.amount || data.purchase?.price?.value || data.total_amount || 0);
 
             return {
                 externalOrderId: extId,
@@ -105,14 +119,14 @@ export const customAdapter: WebhookProviderAdapter = {
                 },
                 payment: {
                     amount: amount,
-                    currency: data.currency || data.payment?.currency || 'BRL',
+                    currency: data.currency || data.payment?.currency || data.currency_code || 'BRL',
                     method: method as any,
                 },
                 status: status,
                 eventType: eventType,
-                timestamp: data.created_at || data.timestamp || data.updated_at || new Date().toISOString(),
-                checkoutUrl: data.checkout_url || data.url || data.checkout_payment_url || undefined,
-                pixCopyPaste: data.pix_code || data.pix_qrcode || data.pixCopyPaste || data.transaction?.pix_qrcode || data.pix?.qrCode || undefined,
+                timestamp: data.created_at || data.timestamp || data.updated_at || data.date_created || new Date().toISOString(),
+                checkoutUrl: data.checkout_url || data.url || data.checkout_payment_url || data.payment_url || data.pix?.qrCode || undefined,
+                pixCopyPaste: data.pix_code || data.pix_qrcode || data.pixCopyPaste || data.transaction?.pix_qrcode || data.pix?.qrCode || data.pix_copia_e_cola || undefined,
             };
         } catch (error) {
             console.error('[UniversalAdapter] Erro ao normalizar payload:', error);
