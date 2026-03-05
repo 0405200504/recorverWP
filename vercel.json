@@ -1,8 +1,7 @@
 {
-    "crons": [
-        {
-            "path": "/api/scheduler",
-            "schedule": "* * * * *"
+    "functions": {
+        "src/app/api/**": {
+            "maxDuration": 30
         }
-    ]
+    }
 }
