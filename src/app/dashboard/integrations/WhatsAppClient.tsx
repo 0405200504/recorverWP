@@ -7,13 +7,13 @@ import { addWhatsAppNumber, deleteWhatsAppNumber } from '../actions';
 export function AddWhatsAppButton() {
     const [isOpen, setIsOpen] = useState(false);
     const [phase, setPhase] = useState<'form' | 'loading' | 'qr' | 'connected'>('form');
-    const [sessionName, setSessionName] = useState('');
+    const [instanceName, setInstanceName] = useState('');
     const [qrBase64, setQrBase64] = useState('');
     const [error, setError] = useState('');
 
     const handleClose = () => {
-        if (sessionName && phase === 'qr') {
-            fetch(`/api/whatsapp/instance?name=${encodeURIComponent(sessionName)}`, { method: 'DELETE' }).catch(() => { });
+        if (instanceName && phase === 'qr') {
+            fetch(`/api/whatsapp/instance?name=${encodeURIComponent(instanceName)}`, { method: 'DELETE' }).catch(() => { });
         }
         setIsOpen(false);
         setPhase('form');
@@ -22,14 +22,14 @@ export function AddWhatsAppButton() {
     };
 
     const startQR = async () => {
-        if (!sessionName.trim()) { setError('Digite um nome para a sessão.'); return; }
+        if (!instanceName.trim()) { setError('Digite um nome para a sessão.'); return; }
         setPhase('loading');
         setError('');
         try {
             const res = await fetch('/api/whatsapp/instance', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sessionName: sessionName.trim() })
+                body: JSON.stringify({ instanceName: instanceName.trim() })
             });
             const data = await res.json();
             if (data?.qrBase64) {
@@ -40,52 +40,39 @@ export function AddWhatsAppButton() {
                 setPhase('form');
             }
         } catch {
-            setError('Erro de rede. Verifique sua conexão e tente novamente.');
+            setError('Erro de rede. Tente novamente.');
             setPhase('form');
         }
     };
 
     const checkStatus = useCallback(async () => {
-        if (phase !== 'qr' || !sessionName) return;
+        if (phase !== 'qr' || !instanceName) return;
         try {
-            const res = await fetch(`/api/whatsapp/instance?name=${encodeURIComponent(sessionName)}`);
+            const res = await fetch(`/api/whatsapp/instance?name=${encodeURIComponent(instanceName)}`);
             const data = await res.json();
-            // WAHA: status = WORKING quando conectado
-            if (data?.status === 'WORKING') {
+            if (data?.instance?.state === 'open') {
                 setPhase('connected');
                 await addWhatsAppNumber({
-                    phoneNumberId: sessionName,
-                    wabaId: 'waha',
-                    accessToken: sessionName,
-                    displayName: data?.me?.pushname || sessionName
+                    phoneNumberId: instanceName,
+                    wabaId: 'evolution_api',
+                    accessToken: instanceName,
+                    displayName: data?.instance?.profileName || instanceName
                 });
                 setTimeout(handleClose, 2500);
-            } else if (data?.status === 'SCAN_QR_CODE' || data?.status === 'STARTING') {
-                // Tenta renovar o QR Code
-                const qrRes = await fetch('/api/whatsapp/instance', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sessionName })
-                });
-                const qrData = await qrRes.json();
-                if (qrData?.qrBase64 && qrData.qrBase64 !== qrBase64) setQrBase64(qrData.qrBase64);
             }
         } catch { /* ignora */ }
-    }, [phase, sessionName, qrBase64]);
+    }, [phase, instanceName]);
 
     useEffect(() => {
         if (phase !== 'qr') return;
-        const iv = setInterval(checkStatus, 5000);
+        const iv = setInterval(checkStatus, 4000);
         return () => clearInterval(iv);
     }, [phase, checkStatus]);
 
     if (!isOpen) {
         return (
-            <button
-                onClick={() => setIsOpen(true)}
-                className={styles.btnPrimary}
-                style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}
-            >
+            <button onClick={() => setIsOpen(true)} className={styles.btnPrimary}
+                style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21" />
                 </svg>
@@ -109,18 +96,18 @@ export function AddWhatsAppButton() {
                                 {error}
                             </div>
                         )}
-                        <label style={{ display: 'block', fontSize: 12, color: '#a1a1aa', marginBottom: 5 }}>Nome da sessão</label>
+                        <label style={{ display: 'block', fontSize: 12, color: '#a1a1aa', marginBottom: 5 }}>Nome da conexão</label>
                         <input
                             className={styles.input}
-                            value={sessionName}
-                            onChange={e => setSessionName(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))}
+                            value={instanceName}
+                            onChange={e => setInstanceName(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))}
                             placeholder="Ex: minha_empresa"
                             style={{ marginBottom: 6 }}
                         />
                         <p style={{ fontSize: 11, color: '#71717a', marginBottom: 20, marginTop: 4 }}>Apenas letras, números, _ e -</p>
                         <div style={{ display: 'flex', gap: 10 }}>
                             <button onClick={handleClose} className={styles.btnSecondary} style={{ flex: 1 }}>Cancelar</button>
-                            <button onClick={startQR} className={styles.btnPrimary} style={{ flex: 2 }} disabled={!sessionName}>
+                            <button onClick={startQR} className={styles.btnPrimary} style={{ flex: 2 }} disabled={!instanceName}>
                                 → Gerar QR Code
                             </button>
                         </div>
@@ -145,7 +132,7 @@ export function AddWhatsAppButton() {
                         <div style={{ width: 220, height: 220, background: '#fff', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, padding: 8 }}>
                             {qrBase64
                                 ? <img src={qrBase64} alt="QR Code WhatsApp" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                                : <p style={{ color: '#000', fontSize: 12, textAlign: 'center' }}>Carregando QR...</p>
+                                : <p style={{ color: '#000', fontSize: 12, textAlign: 'center' }}>Carregando...</p>
                             }
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
