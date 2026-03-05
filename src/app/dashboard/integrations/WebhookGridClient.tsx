@@ -29,7 +29,8 @@ export function WebhookGridClient({ configs, orgId }: { configs: any[], orgId: s
     const [baseUrl, setBaseUrl] = useState('');
 
     useEffect(() => {
-        setBaseUrl(window.location.origin);
+        const origin = window.location.origin;
+        setBaseUrl(origin.includes('localhost') ? 'https://recorver-wp.vercel.app' : origin);
     }, []);
 
     const copyToClipboard = (text: string) => {
