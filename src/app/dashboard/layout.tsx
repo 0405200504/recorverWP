@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { authOptions } from "@/lib/auth";
 import styles from './layout.module.css';
 import Link from 'next/link';
+import { LogoutButton } from './LogoutButton';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
     const session = await getServerSession(authOptions);
@@ -30,6 +31,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
                     <li><Link href="/dashboard/runs" className={styles.navLink}>Recuperações</Link></li>
                     <li><Link href="/dashboard/integrations" className={styles.navLink}>Integrações</Link></li>
                 </nav>
+                <div style={{ marginTop: 'auto', paddingTop: '20px', borderTop: '1px solid #27272a' }}>
+                    <LogoutButton />
+                </div>
             </aside>
             <main className={styles.main}>
                 {children}
