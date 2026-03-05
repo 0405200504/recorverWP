@@ -7,9 +7,11 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: NextRequest) {
     // Autenticação do cron
     const authHeader = req.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET || 'dev-cron-secret'}`) {
+    const expectedSecret = process.env.CRON_SECRET || 'cron-recuperei-2024';
+    if (authHeader !== `Bearer ${expectedSecret}`) {
         return new NextResponse('Unauthorized', { status: 401 });
     }
+
 
     try {
         const now = new Date();
