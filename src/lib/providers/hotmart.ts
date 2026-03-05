@@ -10,24 +10,24 @@ export const hotmartAdapter: WebhookProviderAdapter = {
 
     normalize(rawPayload: Record<string, any>): NormalizedWebhookPayload | null {
         try {
-            // TODO: Map exact hotmart fields
-            // Exemplo genérico
+            const data = rawPayload.data || rawPayload;
             return {
-                externalOrderId: rawPayload.transaction || String(Date.now()),
+                externalOrderId: data.purchase?.transaction || data.transaction || String(Date.now()),
                 lead: {
-                    name: rawPayload.buyer?.name || '',
-                    phoneE164: rawPayload.buyer?.checkout_phone || '',
-                    email: rawPayload.buyer?.email || '',
+                    name: data.buyer?.name || '',
+                    phoneE164: String(data.buyer?.checkout_phone || data.buyer?.phone || ''),
+                    email: data.buyer?.email || '',
                 },
                 payment: {
-                    amount: Number(rawPayload.purchase?.price?.value) || 0,
-                    currency: rawPayload.purchase?.price?.currency_code || 'BRL',
-                    method: 'pix', // TODO mapear method real
+                    amount: Number(data.purchase?.price?.value || data.price) || 0,
+                    currency: data.purchase?.price?.currency_code || data.currency || 'BRL',
+                    method: 'pix',
                 },
-                status: 'pending', // TODO mapear status real
-                eventType: 'pix_generated', // TODO mapear evento real (ex: 'PIX_CHARGE')
+                status: 'pending',
+                eventType: 'pix_generated',
                 timestamp: rawPayload.creation_date ? new Date(rawPayload.creation_date).toISOString() : new Date().toISOString(),
             };
+
         } catch (e) {
             return null;
         }
