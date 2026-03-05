@@ -26,24 +26,46 @@ export function AddWhatsAppButton() {
         setPhase('loading');
         setError('');
         try {
+            // 1. Cria instância (retorna rápido, sem esperar o QR)
             const res = await fetch('/api/whatsapp/instance', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ instanceName: instanceName.trim() })
             });
             const data = await res.json();
-            if (data?.qrBase64) {
-                setQrBase64(data.qrBase64);
-                setPhase('qr');
-            } else {
-                setError(data?.error || 'Não foi possível gerar QR Code. Tente novamente.');
+            if (data?.error) {
+                setError(data.error);
                 setPhase('form');
+                return;
             }
+            // 2. Vai para fase QR — o polling abaixo vai buscar o QR separadamente
+            setPhase('qr');
         } catch {
-            setError('Erro de rede. Tente novamente.');
+            setError('Erro de rede. Verifique se o ngrok está ativo.');
             setPhase('form');
         }
     };
+
+    // Polling do QR Code (separado do polling de status)
+    useEffect(() => {
+        if (phase !== 'qr' || !instanceName) return;
+        let active = true;
+        const pollQR = async () => {
+            try {
+                const res = await fetch(`/api/whatsapp/instance/qr?name=${encodeURIComponent(instanceName)}`);
+                const data = await res.json();
+                const base64 = data?.base64;
+                if (active && base64 && base64.length > 100) {
+                    setQrBase64(base64.startsWith('data:') ? base64 : `data:image/png;base64,${base64}`);
+                }
+            } catch { }
+        };
+        pollQR(); // imediato
+        const iv = setInterval(pollQR, 3000);
+        return () => { active = false; clearInterval(iv); };
+    }, [phase, instanceName]);
+
+
 
     const checkStatus = useCallback(async () => {
         if (phase !== 'qr' || !instanceName) return;
