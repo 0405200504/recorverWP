@@ -93,15 +93,15 @@ export async function deleteLead(id: string) {
 }
 
 // ==== CAMPANHAS ====
-export async function addCampaign(data: { name: string, delayMinutes: number, messageType: string, textContent: string, mediaUrl: string }) {
+export async function addCampaign(data: { name: string, triggerEvent: string, delayMinutes: number, messageType: string, textContent: string, mediaUrl: string }) {
     const orgId = await getOrgId();
     await prisma.campaign.create({
         data: {
             organizationId: orgId,
             name: data.name,
             active: true,
-            triggerEventTypes: '["checkout_abandoned"]', // Simulando padrão
-            stopOnEventTypes: '["payment_approved", "refunded"]',
+            triggerEventTypes: JSON.stringify([data.triggerEvent]),
+            stopOnEventTypes: JSON.stringify(['payment_approved', 'refunded']),
             maxAttemptsPerLeadPerOrder: 3,
             steps: {
                 create: [
