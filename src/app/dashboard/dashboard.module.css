@@ -200,13 +200,14 @@
     background: rgba(202, 138, 4, 0.2);
     color: #facc15;
 }
+
 /* Shadcn UI Forms */
 .shadcnCard {
-    background-color: #09090b;
-    border: 1px solid #27272a;
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
     border-radius: 8px;
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    color: #fafafa;
+    color: #0f172a;
     padding: 24px;
     margin-bottom: 24px;
 }
@@ -214,7 +215,7 @@
 .shadcnCardHeader {
     display: flex;
     flex-direction: column;
-    space-y: 1.5;
+    gap: 6px;
     padding-bottom: 20px;
 }
 
@@ -223,13 +224,13 @@
     font-weight: 600;
     line-height: 1.4;
     letter-spacing: -0.025em;
-    color: #fafafa;
+    color: #0f172a;
     margin: 0;
 }
 
 .shadcnCardDescription {
     font-size: 14px;
-    color: #a1a1aa;
+    color: #64748b;
     margin: 6px 0 0 0;
 }
 
@@ -237,7 +238,7 @@
     font-size: 14px;
     font-weight: 500;
     line-height: 1;
-    color: #fafafa;
+    color: #0f172a;
     margin-bottom: 8px;
     display: block;
 }
@@ -247,20 +248,22 @@
     height: 40px;
     width: 100%;
     border-radius: 6px;
-    border: 1px solid #27272a;
+    border: 1px solid #e2e8f0;
     background-color: transparent;
     padding: 8px 12px;
     font-size: 14px;
-    color: #fafafa;
+    color: #0f172a;
     transition: border-color 0.2s, box-shadow 0.2s;
     outline: none;
 }
+
 .shadcnInput::placeholder {
-    color: #a1a1aa;
+    color: #64748b;
 }
+
 .shadcnInput:focus {
-    border-color: #fafafa;
-    box-shadow: 0 0 0 1px #fafafa;
+    border-color: #0f172a;
+    box-shadow: 0 0 0 1px #0f172a;
 }
 
 .shadcnSelect {
@@ -268,26 +271,28 @@
     height: 40px;
     width: 100%;
     border-radius: 6px;
-    border: 1px solid #27272a;
+    border: 1px solid #e2e8f0;
     background-color: transparent;
     padding: 8px 12px;
     font-size: 14px;
-    color: #fafafa;
+    color: #0f172a;
     transition: border-color 0.2s, box-shadow 0.2s;
     outline: none;
     appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 12px center;
     background-size: 16px;
 }
+
 .shadcnSelect:focus {
-    border-color: #fafafa;
-    box-shadow: 0 0 0 1px #fafafa;
+    border-color: #0f172a;
+    box-shadow: 0 0 0 1px #0f172a;
 }
+
 .shadcnSelect option {
-    background-color: #09090b;
-    color: #fafafa;
+    background-color: #ffffff;
+    color: #0f172a;
 }
 
 .shadcnTextarea {
@@ -295,21 +300,23 @@
     min-height: 80px;
     width: 100%;
     border-radius: 6px;
-    border: 1px solid #27272a;
+    border: 1px solid #e2e8f0;
     background-color: transparent;
     padding: 8px 12px;
     font-size: 14px;
-    color: #fafafa;
+    color: #0f172a;
     transition: border-color 0.2s, box-shadow 0.2s;
     outline: none;
     resize: vertical;
 }
+
 .shadcnTextarea::placeholder {
-    color: #a1a1aa;
+    color: #64748b;
 }
+
 .shadcnTextarea:focus {
-    border-color: #fafafa;
-    box-shadow: 0 0 0 1px #fafafa;
+    border-color: #0f172a;
+    box-shadow: 0 0 0 1px #0f172a;
 }
 
 .shadcnButtonPrimary {
@@ -321,14 +328,15 @@
     font-weight: 500;
     height: 40px;
     padding: 8px 16px;
-    background-color: #fafafa;
-    color: #18181b;
+    background-color: #0f172a;
+    color: #f8fafc;
     border: none;
     cursor: pointer;
     transition: background-color 0.2s;
 }
+
 .shadcnButtonPrimary:hover {
-    background-color: #e4e4e7;
+    background-color: #334155;
 }
 
 .shadcnButtonOutline {
@@ -341,13 +349,14 @@
     height: 40px;
     padding: 8px 16px;
     background-color: transparent;
-    color: #fafafa;
-    border: 1px solid #27272a;
+    color: #0f172a;
+    border: 1px solid #e2e8f0;
     cursor: pointer;
     transition: background-color 0.2s;
 }
+
 .shadcnButtonOutline:hover {
-    background-color: #27272a;
+    background-color: #f1f5f9;
 }
 
 /* Avatar Group (Shadcn style) */
@@ -412,7 +421,8 @@
     width: 12px;
     border-radius: 50%;
     border: 2px solid #000000;
-    background-color: #16a34a; /* green-600 */
+    background-color: #16a34a;
+    /* green-600 */
 }
 
 /* Field Layouts (Shadcn style) */
@@ -435,14 +445,14 @@
 .fieldLegend {
     font-size: 16px;
     font-weight: 600;
-    color: #fafafa;
+    color: #0f172a;
     line-height: 1.4;
     margin-bottom: 4px;
 }
 
 .fieldDescription {
     font-size: 14px;
-    color: #a1a1aa;
+    color: #64748b;
     line-height: 1.4;
     margin-top: -4px;
     margin-bottom: 12px;
@@ -457,6 +467,6 @@
 .fieldSeparator {
     height: 1px;
     width: 100%;
-    background-color: #27272a;
+    background-color: #e2e8f0;
     margin: 8px 0;
 }
