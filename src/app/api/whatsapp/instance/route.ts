@@ -47,6 +47,21 @@ export async function POST(req: NextRequest) {
             })
         }).catch(err => console.error("Erro ao definir settings na API do whats", err));
 
+        // Registra o webhook (usando a URL de origem da request)
+        const appUrl = req.nextUrl.origin.includes('localhost') ? 'http://host.docker.internal:3000' : req.nextUrl.origin;
+        await fetch(`${EVO_URL}/webhook/set/${name}`, {
+            method: 'POST',
+            headers: evoHeaders,
+            body: JSON.stringify({
+                webhook: {
+                    url: `${appUrl}/api/webhooks/whatsapp`,
+                    byEvents: false,
+                    base64: false,
+                    events: ['MESSAGES_UPSERT', 'MESSAGES_UPDATE', 'SEND_MESSAGE', 'CONNECTION_UPDATE']
+                }
+            })
+        }).catch(err => console.error("Erro ao registrar webhook do whats", err));
+
         // Retorna imediatamente — o frontend vai fazer polling do QR via /qr
         return NextResponse.json({ instanceName: name, creating: true });
     } catch (err: any) {
