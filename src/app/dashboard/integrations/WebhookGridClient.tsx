@@ -27,15 +27,60 @@ export function WebhookGridClient({ configs, orgId }: { configs: any[], orgId: s
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({ name: '', clientId: '', clientSecret: '', webhookToken: '' });
     const [baseUrl, setBaseUrl] = useState('');
+    const [checkoutUrl, setCheckoutUrl] = useState('');
+    const [detectedProvider, setDetectedProvider] = useState<any>(null);
 
     useEffect(() => {
         const origin = window.location.origin;
         setBaseUrl(origin.includes('localhost') ? 'https://recorver-wp.vercel.app' : origin);
     }, []);
 
+    const detectProvider = (url: string) => {
+        setCheckoutUrl(url);
+        if (!url) {
+            setDetectedProvider(null);
+            return;
+        }
+
+        const lowerUrl = url.toLowerCase();
+        let found = null;
+
+        if (lowerUrl.includes('cakto')) found = PROVIDERS.find(p => p.id === 'cakto');
+        else if (lowerUrl.includes('hotmart') || lowerUrl.includes('pay.hotmart')) found = PROVIDERS.find(p => p.id === 'hotmart');
+        else if (lowerUrl.includes('kiwify')) found = PROVIDERS.find(p => p.id === 'kiwify');
+        else if (lowerUrl.includes('hubla')) found = PROVIDERS.find(p => p.id === 'hubla');
+        else if (lowerUrl.includes('myshopify') || lowerUrl.includes('shopify')) found = PROVIDERS.find(p => p.id === 'shopify');
+        else if (lowerUrl.includes('eduzz')) found = PROVIDERS.find(p => p.id === 'eduzz') || { id: 'custom', name: 'Eduzz' };
+        else if (lowerUrl.includes('braip')) found = PROVIDERS.find(p => p.id === 'braip') || { id: 'custom', name: 'Braip' };
+        else if (lowerUrl.includes('ticto')) found = PROVIDERS.find(p => p.id === 'ticto') || { id: 'custom', name: 'Ticto' };
+
+        setDetectedProvider(found);
+    };
+
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
         alert('URL copiada para a área de transferência!');
+    };
+
+    const handleQuickAdd = async () => {
+        if (!detectedProvider) return;
+        setLoading(true);
+        try {
+            await addWebhookConfig({
+                name: `Integração ${detectedProvider.name}`,
+                provider: detectedProvider.id,
+                clientId: '',
+                clientSecret: '',
+                webhookToken: ''
+            });
+            setCheckoutUrl('');
+            setDetectedProvider(null);
+            router.refresh();
+        } catch (err) {
+            alert('Erro ao criar webhook');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleAdd = async (e: any) => {
@@ -69,6 +114,61 @@ export function WebhookGridClient({ configs, orgId }: { configs: any[], orgId: s
 
     return (
         <div>
+            {/* MAGIC DETECTOR */}
+            <div style={{ marginBottom: '32px', background: 'linear-gradient(145deg, #0f172a, #1e293b)', padding: '24px', borderRadius: '16px', border: '1px solid #38bdf840', boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}>
+                <h4 style={{ margin: '0 0 12px 0', color: '#fff', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>✨</span> Configuração Mágica
+                </h4>
+                <p style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '16px' }}>
+                    Cole a URL do seu produto ou checkout e nós configuramos tudo para você.
+                </p>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                    <input
+                        placeholder="Ex: https://pay.cakto.com.br/meu-produto"
+                        value={checkoutUrl}
+                        onChange={(e) => detectProvider(e.target.value)}
+                        className={styles.input}
+                        style={{ flex: 1, height: '48px', fontSize: '14px', background: '#0f172a' }}
+                    />
+                </div>
+
+                {detectedProvider && (
+                    <div style={{ marginTop: '20px', animation: 'fadeIn 0.3s ease' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#07598530', padding: '12px', borderRadius: '10px', border: '1px solid #0ea5e950' }}>
+                            <div style={{ height: '40px', width: '40px', background: '#0ea5e9', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
+                                🚀
+                            </div>
+                            <div style={{ flex: 1 }}>
+                                <p style={{ margin: 0, color: '#fff', fontSize: '14px', fontWeight: '600' }}>Plataforma Detectada: {detectedProvider.name}</p>
+                                <p style={{ margin: 0, color: '#7dd3fc', fontSize: '12px' }}>Seu webhook está pronto para ser configurado.</p>
+                            </div>
+                            <button
+                                onClick={handleQuickAdd}
+                                disabled={loading}
+                                style={{ background: '#0ea5e9', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '13px' }}
+                            >
+                                {loading ? 'Configurando...' : 'Confirmar e Criar'}
+                            </button>
+                        </div>
+                        <div style={{ marginTop: '12px', background: '#1e293b', padding: '12px', borderRadius: '8px', border: '1px dashed #334155' }}>
+                            <p style={{ margin: '0 0 8px 0', color: '#94a3b8', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>URL do Webhook para copiar:</p>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                <code style={{ flex: 1, fontSize: '12px', color: '#38bdf8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {baseUrl}/api/webhooks/checkout/{detectedProvider.id}?orgId={orgId}
+                                </code>
+                                <button onClick={() => copyToClipboard(`${baseUrl}/api/webhooks/checkout/${detectedProvider.id}?orgId=${orgId}`)} style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>COPIAR</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                <div style={{ height: '1px', flex: 1, background: '#27272a' }}></div>
+                <span style={{ fontSize: '12px', color: '#52525b', textTransform: 'uppercase' }}>Ou escolha manualmente</span>
+                <div style={{ height: '1px', flex: 1, background: '#27272a' }}></div>
+            </div>
+
             {/* GRID OF PROVIDERS */}
             {!selectedProvider && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '24px' }}>
