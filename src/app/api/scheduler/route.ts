@@ -5,23 +5,30 @@ import { sendTextWithHumanBehavior, sendAudioWithHumanBehavior, isInstanceConnec
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
-    // Autenticação do cron
+    const url = new URL(req.url);
+    const secretParam = url.searchParams.get('secret');
     const authHeader = req.headers.get('authorization');
     const expectedSecret = process.env.CRON_SECRET || 'cron-recuperei-2024';
-    if (authHeader !== `Bearer ${expectedSecret}`) {
+
+    const isForce = url.searchParams.get('force') === 'true';
+
+    // Permite Bearer token ou query param ?secret=...
+    if (authHeader !== `Bearer ${expectedSecret}` && secretParam !== expectedSecret) {
+        console.warn('[SCHEDULER] Tentativa de acesso não autorizado');
         return new NextResponse('Unauthorized', { status: 401 });
     }
 
-
     try {
         const now = new Date();
+        console.log(`[SCHEDULER] Iniciando processamento em ${now.toISOString()} (Force: ${isForce})`);
 
-        // Busca o próximo dispatch pendente (apenas 1 por execução para não causar timeout na Vercel)
+        const where: any = { status: 'pending' };
+        if (!isForce) {
+            where.scheduledFor = { lte: now };
+        }
+
         const pendingDispatches = await prisma.stepDispatch.findMany({
-            where: {
-                status: 'pending',
-                scheduledFor: { lte: now }
-            },
+            where,
             include: {
                 run: {
                     include: {
@@ -35,10 +42,16 @@ export async function GET(req: NextRequest) {
                 },
                 step: true
             },
-            take: 1, // 1 por execução — o cron roda a cada 1 minuto naturalmente
+            take: isForce ? 10 : 1,
             orderBy: { scheduledFor: 'asc' }
         });
 
+        if (pendingDispatches.length === 0) {
+            console.log('[SCHEDULER] Nenhum dispatch pendente no momento.');
+            return NextResponse.json({ processed: 0, message: 'Nada para enviar' });
+        }
+
+        console.log(`[SCHEDULER] Processando ${pendingDispatches.length} dispatch(es)...`);
 
         let sent = 0, skipped = 0, failed = 0;
 
@@ -60,6 +73,7 @@ export async function GET(req: NextRequest) {
             // 2. Verifica se tem número WhatsApp configurado
             const waNumbers = organization.whatsappNumbers;
             if (!waNumbers || waNumbers.length === 0) {
+                console.warn(`[SCHEDULER] Org ${organization.id} sem números ativos.`);
                 await failDispatch(dispatch.id, dispatch.attempts, 'Nenhum número WhatsApp ativo encontrado');
                 failed++;
                 continue;
@@ -67,22 +81,24 @@ export async function GET(req: NextRequest) {
 
             // 3. O instanceName é salvo em phoneNumberId quando conectado via Evolution API
             const waNumber = waNumbers[0];
-            const instanceName = waNumber.phoneNumberId; // nome da instância na Evolution API
+            const instanceName = waNumber.phoneNumberId;
 
-            // 4. Verifica se a instância está conectada
+            console.log(`[SCHEDULER] Verificando conexão da instância: ${instanceName}`);
             const connected = await isInstanceConnected(instanceName);
             if (!connected) {
+                console.error(`[SCHEDULER] Instância ${instanceName} desconectada da Evolution API.`);
                 await failDispatch(dispatch.id, dispatch.attempts, `Instância ${instanceName} desconectada`);
                 failed++;
                 continue;
             }
 
+            console.log(`[SCHEDULER] Enviando mensagem para ${lead.phoneE164}...`);
             // 5. Envia a mensagem com comportamento humano anti-ban
             try {
                 let messageId: string | undefined;
 
                 if (step.messageType === 'audio' && step.mediaUrl) {
-                    // Áudio: simula "gravando áudio..." (4-10s) antes de enviar
+                    console.log(`[SCHEDULER] Tipo Áudio: ${step.mediaUrl}`);
                     const result = await sendAudioWithHumanBehavior(
                         instanceName,
                         lead.phoneE164,
@@ -90,8 +106,8 @@ export async function GET(req: NextRequest) {
                     );
                     messageId = result.messageId;
                 } else {
-                    // Texto: simula "digitando..." proporcional ao tamanho (3-8s)
                     const text = step.contentText || '';
+                    console.log(`[SCHEDULER] Tipo Texto: "${text.substring(0, 30)}..."`);
                     const result = await sendTextWithHumanBehavior(
                         instanceName,
                         lead.phoneE164,
@@ -100,6 +116,8 @@ export async function GET(req: NextRequest) {
                     );
                     messageId = result.messageId;
                 }
+
+                console.log(`[SCHEDULER] ✅ Sucesso! MessageId: ${messageId}`);
 
                 // Atualiza como enviado
                 await prisma.stepDispatch.update({

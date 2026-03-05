@@ -7,6 +7,7 @@ import { WebhookGridClient } from './WebhookGridClient';
 import { EditWebhookSecretButton } from './WebhookClient';
 import { EventFeed } from './EventFeed';
 import { WhatsAppStatusBadge } from './WhatsAppStatusBadge';
+import { TriggerSchedulerButton } from './TriggerSchedulerButton';
 
 
 export default async function IntegrationsPage() {
@@ -58,7 +59,7 @@ export default async function IntegrationsPage() {
 
                     <WebhookGridClient configs={org.webhookConfigs} orgId={orgId} />
 
-                    <div style={{ marginTop: '32px', borderTop: '1px solid #27272a', paddingTop: '24px' }}>
+                    <div style={{ marginTop: '32px', borderTop: '1px solid #27272a', paddingTop: '24px', whiteSpace: 'pre-wrap' }}>
                         <p style={{ fontSize: '14px' }}><strong>Webhook Secret Master (para Custom Auth via HMAC):</strong></p>
                         <EditWebhookSecretButton currentSecret={org.webhook_secret} />
                     </div>
@@ -78,6 +79,7 @@ export default async function IntegrationsPage() {
                     ))}
                     {org.whatsappNumbers.length === 0 && <p style={{ fontSize: '14px', color: '#a1a1aa' }}>Nenhum número configurado para enviar mensagens.</p>}
                     <AddWhatsAppButton />
+                    <TriggerSchedulerButton />
                 </div>
             </div>
         </div>
