@@ -43,7 +43,7 @@ export function WhatsAppEmbed() {
         </div>
     );
 
-    const managerUrl = `${evoUrl}/manager/instance/${instanceId || instanceName}/`;
+    const managerUrl = `${evoUrl}/manager/instance/${instanceId || instanceName}/?ngrok-skip-browser-warning=true`;
 
     return (
         <div style={{ border: '1px solid #27272a', borderRadius: 12, overflow: 'hidden', height: 'calc(100vh - 160px)' }}>
