@@ -50,9 +50,9 @@ export function WebhookGridClient({ configs, orgId }: { configs: any[], orgId: s
         else if (lowerUrl.includes('kiwify')) found = PROVIDERS.find(p => p.id === 'kiwify');
         else if (lowerUrl.includes('hubla')) found = PROVIDERS.find(p => p.id === 'hubla');
         else if (lowerUrl.includes('myshopify') || lowerUrl.includes('shopify')) found = PROVIDERS.find(p => p.id === 'shopify');
-        else if (lowerUrl.includes('eduzz')) found = PROVIDERS.find(p => p.id === 'eduzz') || { id: 'custom', name: 'Eduzz' };
-        else if (lowerUrl.includes('braip')) found = PROVIDERS.find(p => p.id === 'braip') || { id: 'custom', name: 'Braip' };
-        else if (lowerUrl.includes('ticto')) found = PROVIDERS.find(p => p.id === 'ticto') || { id: 'custom', name: 'Ticto' };
+        else if (lowerUrl.includes('eduzz')) found = { id: 'custom', name: 'Eduzz' };
+        else if (lowerUrl.includes('braip')) found = { id: 'custom', name: 'Braip' };
+        else if (lowerUrl.includes('ticto')) found = { id: 'custom', name: 'Ticto' };
 
         setDetectedProvider(found);
     };
@@ -62,35 +62,19 @@ export function WebhookGridClient({ configs, orgId }: { configs: any[], orgId: s
         alert('URL copiada para a área de transferência!');
     };
 
-    const handleQuickAdd = async () => {
-        if (!detectedProvider) return;
-        setLoading(true);
-        try {
-            await addWebhookConfig({
-                name: `Integração ${detectedProvider.name}`,
-                provider: detectedProvider.id,
-                clientId: '',
-                clientSecret: '',
-                webhookToken: ''
-            });
-            setCheckoutUrl('');
-            setDetectedProvider(null);
-            router.refresh();
-        } catch (err) {
-            alert('Erro ao criar webhook');
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const handleAdd = async (e: any) => {
         e.preventDefault();
         if (!selectedProvider) return;
         setLoading(true);
         try {
-            await addWebhookConfig({ ...formData, provider: selectedProvider });
+            // Se detectou um provedor específico no form do custom, usamos ele
+            const finalProvider = (selectedProvider === 'custom' && detectedProvider) ? detectedProvider.id : selectedProvider;
+
+            await addWebhookConfig({ ...formData, provider: finalProvider });
             setSelectedProvider(null);
             setFormData({ name: '', clientId: '', clientSecret: '', webhookToken: '' });
+            setCheckoutUrl('');
+            setDetectedProvider(null);
             router.refresh();
         } catch (err) {
             alert('Erro ao criar webhook');
@@ -114,61 +98,6 @@ export function WebhookGridClient({ configs, orgId }: { configs: any[], orgId: s
 
     return (
         <div>
-            {/* MAGIC DETECTOR */}
-            <div style={{ marginBottom: '32px', background: 'linear-gradient(145deg, #0f172a, #1e293b)', padding: '24px', borderRadius: '16px', border: '1px solid #38bdf840', boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}>
-                <h4 style={{ margin: '0 0 12px 0', color: '#fff', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span>✨</span> Configuração Mágica
-                </h4>
-                <p style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '16px' }}>
-                    Cole a URL do seu produto ou checkout e nós configuramos tudo para você.
-                </p>
-                <div style={{ display: 'flex', gap: '12px' }}>
-                    <input
-                        placeholder="Ex: https://pay.cakto.com.br/meu-produto"
-                        value={checkoutUrl}
-                        onChange={(e) => detectProvider(e.target.value)}
-                        className={styles.input}
-                        style={{ flex: 1, height: '48px', fontSize: '14px', background: '#0f172a' }}
-                    />
-                </div>
-
-                {detectedProvider && (
-                    <div style={{ marginTop: '20px', animation: 'fadeIn 0.3s ease' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#07598530', padding: '12px', borderRadius: '10px', border: '1px solid #0ea5e950' }}>
-                            <div style={{ height: '40px', width: '40px', background: '#0ea5e9', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
-                                🚀
-                            </div>
-                            <div style={{ flex: 1 }}>
-                                <p style={{ margin: 0, color: '#fff', fontSize: '14px', fontWeight: '600' }}>Plataforma Detectada: {detectedProvider.name}</p>
-                                <p style={{ margin: 0, color: '#7dd3fc', fontSize: '12px' }}>Seu webhook está pronto para ser configurado.</p>
-                            </div>
-                            <button
-                                onClick={handleQuickAdd}
-                                disabled={loading}
-                                style={{ background: '#0ea5e9', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', fontSize: '13px' }}
-                            >
-                                {loading ? 'Configurando...' : 'Confirmar e Criar'}
-                            </button>
-                        </div>
-                        <div style={{ marginTop: '12px', background: '#1e293b', padding: '12px', borderRadius: '8px', border: '1px dashed #334155' }}>
-                            <p style={{ margin: '0 0 8px 0', color: '#94a3b8', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>URL do Webhook para copiar:</p>
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                <code style={{ flex: 1, fontSize: '12px', color: '#38bdf8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                    {baseUrl}/api/webhooks/checkout/{detectedProvider.id}?orgId={orgId}
-                                </code>
-                                <button onClick={() => copyToClipboard(`${baseUrl}/api/webhooks/checkout/${detectedProvider.id}?orgId=${orgId}`)} style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', fontSize: '12px', fontWeight: '600' }}>COPIAR</button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-                <div style={{ height: '1px', flex: 1, background: '#27272a' }}></div>
-                <span style={{ fontSize: '12px', color: '#52525b', textTransform: 'uppercase' }}>Ou escolha manualmente</span>
-                <div style={{ height: '1px', flex: 1, background: '#27272a' }}></div>
-            </div>
-
             {/* GRID OF PROVIDERS */}
             {!selectedProvider && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '24px' }}>
@@ -200,35 +129,64 @@ export function WebhookGridClient({ configs, orgId }: { configs: any[], orgId: s
             {selectedProvider && (
                 <div style={{ background: '#111111', padding: '24px', borderRadius: '12px', border: '1px solid #27272a', marginBottom: '24px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                        <h4 style={{ margin: 0, color: '#fff', fontSize: '16px' }}>Adicionar Webhook: <span style={{ color: '#38bdf8' }}>{PROVIDERS.find(p => p.id === selectedProvider)?.name}</span></h4>
-                        <button onClick={() => setSelectedProvider(null)} style={{ background: 'none', border: 'none', color: '#a1a1aa', cursor: 'pointer', fontSize: '20px' }}>&times;</button>
+                        <h4 style={{ margin: 0, color: '#fff', fontSize: '16px' }}>Configurar: <span style={{ color: '#38bdf8' }}>{PROVIDERS.find(p => p.id === selectedProvider)?.name}</span></h4>
+                        <button onClick={() => { setSelectedProvider(null); setDetectedProvider(null); setCheckoutUrl(''); }} style={{ background: 'none', border: 'none', color: '#a1a1aa', cursor: 'pointer', fontSize: '20px' }}>&times;</button>
                     </div>
 
-                    <p style={{ color: '#38bdf8', fontSize: '14px', cursor: 'pointer', marginBottom: '24px', textDecoration: 'none' }}>
-                        Clique aqui para ver como integrar com a {PROVIDERS.find(p => p.id === selectedProvider)?.name}
-                    </p>
+                    {selectedProvider === 'custom' && (
+                        <div style={{ marginBottom: '24px', padding: '16px', borderRadius: '12px', background: '#0f172a', border: '1px solid #38bdf840' }}>
+                            <p style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#94a3b8' }}>✨ <strong>Dica Mágica:</strong> Cole a URL do seu produto para identificarmos o checkout automaticamente.</p>
+                            <input
+                                placeholder="https://pay.cakto.com.br/seu-produto"
+                                className={styles.input}
+                                value={checkoutUrl}
+                                onChange={(e) => detectProvider(e.target.value)}
+                                style={{ background: '#020617' }}
+                            />
+
+                            {detectedProvider && (
+                                <div style={{ marginTop: '16px', padding: '12px', background: '#07598530', borderRadius: '8px', border: '1px solid #0ea5e950' }}>
+                                    <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#fff' }}>✅ Plataforma: <strong>{detectedProvider.name}</strong></p>
+                                    <div style={{ background: '#0f172a', padding: '10px', borderRadius: '6px', border: '1px dashed #1e293b' }}>
+                                        <p style={{ margin: '0 0 4px 0', fontSize: '11px', color: '#94a3b8' }}>USE ESTA URL NO SEU CHECKOUT:</p>
+                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                            <code style={{ flex: 1, fontSize: '12px', color: '#38bdf8', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                {baseUrl}/api/webhooks/checkout/{detectedProvider.id}?orgId={orgId}
+                                            </code>
+                                            <button type="button" onClick={() => copyToClipboard(`${baseUrl}/api/webhooks/checkout/${detectedProvider.id}?orgId=${orgId}`)} style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>COPIAR</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     <form onSubmit={handleAdd} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         <div>
-                            <label style={{ fontSize: '12px', color: '#a1a1aa', display: 'block', marginBottom: '4px' }}>Nome</label>
-                            <input required placeholder="Nome do Webhook" className={styles.input} value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
+                            <label style={{ fontSize: '12px', color: '#a1a1aa', display: 'block', marginBottom: '4px' }}>Nome da Integração</label>
+                            <input required placeholder="Ex: Minha Loja principal" className={styles.input} value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
                         </div>
-                        <div>
-                            <label style={{ fontSize: '12px', color: '#a1a1aa', display: 'block', marginBottom: '4px' }}>Client ID</label>
-                            <input placeholder="Client ID" className={styles.input} value={formData.clientId} onChange={e => setFormData({ ...formData, clientId: e.target.value })} />
-                        </div>
-                        <div>
-                            <label style={{ fontSize: '12px', color: '#a1a1aa', display: 'block', marginBottom: '4px' }}>Client Secret</label>
-                            <input type="password" placeholder="..............." className={styles.input} value={formData.clientSecret} onChange={e => setFormData({ ...formData, clientSecret: e.target.value })} />
-                        </div>
-                        <div>
-                            <label style={{ fontSize: '12px', color: '#a1a1aa', display: 'block', marginBottom: '4px' }}>Token do Webhook</label>
-                            <input type="password" placeholder="..............." className={styles.input} value={formData.webhookToken} onChange={e => setFormData({ ...formData, webhookToken: e.target.value })} />
-                        </div>
+
+                        {selectedProvider !== 'custom' && (
+                            <>
+                                <div>
+                                    <label style={{ fontSize: '12px', color: '#a1a1aa', display: 'block', marginBottom: '4px' }}>Client ID (Opcional)</label>
+                                    <input placeholder="Client ID" className={styles.input} value={formData.clientId} onChange={e => setFormData({ ...formData, clientId: e.target.value })} />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize: '12px', color: '#a1a1aa', display: 'block', marginBottom: '4px' }}>Client Secret (Opcional)</label>
+                                    <input type="password" placeholder="..............." className={styles.input} value={formData.clientSecret} onChange={e => setFormData({ ...formData, clientSecret: e.target.value })} />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize: '12px', color: '#a1a1aa', display: 'block', marginBottom: '4px' }}>Token do Webhook (Opcional)</label>
+                                    <input type="password" placeholder="..............." className={styles.input} value={formData.webhookToken} onChange={e => setFormData({ ...formData, webhookToken: e.target.value })} />
+                                </div>
+                            </>
+                        )}
 
                         <div style={{ marginTop: '8px' }}>
                             <button type="submit" className={styles.btnPrimary} style={{ width: '100%', padding: '12px', background: '#2563eb', color: '#fff', fontWeight: '600' }} disabled={loading}>
-                                {loading ? 'Criando...' : 'Criar Webhook'}
+                                {loading ? 'Carregando...' : 'Salvar Configuração'}
                             </button>
                         </div>
                     </form>
