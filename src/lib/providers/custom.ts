@@ -45,17 +45,28 @@ export const customAdapter: WebhookProviderAdapter = {
             const name = customer.name || customer.full_name || customer.nome || customer.first_name || 'Cliente';
             const email = customer.email || customer.email_address || customer.contact_email || 'sem@email.com';
 
-            // Telefone: tenta várias chaves comuns
+            // Telefone: tenta exaustivamente várias chaves comuns e sub-objetos
             let phone = String(
                 customer.phone ||
                 customer.mobile ||
-                customer.telephone ||
-                customer.phone_number ||
-                customer.checkout_phone ||
+                customer.telefone ||
+                customer.celular ||
                 customer.whatsapp ||
+                customer.phone_number ||
+                customer.telephone ||
+                customer.full_phone ||
+                customer.contact_phone ||
+                customer.checkout_phone ||
                 customer.whatsapp_number ||
+                customer.phone_checkout_number ||
                 data.phone ||
                 data.mobile ||
+                data.telefone ||
+                data.celular ||
+                data.full_phone ||
+                data.customer_phone ||
+                data.buyer_phone ||
+                data.phone_number ||
                 ''
             ).replace(/\D/g, '');
 

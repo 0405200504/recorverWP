@@ -58,11 +58,17 @@ export async function evaluateCampaigns(organizationId: string, orderId: string,
         const existingRun = await prisma.recoveryRun.findUnique({
             where: {
                 orderId_campaignId: { orderId, campaignId: campaign.id }
-            }
+            },
+            include: { dispatches: { take: 1 } }
         });
 
-        // Se a run já existe MAS está parada ou concluída, permitimos reiniciar
-        if (!existingRun || ['stopped', 'completed', 'failed'].includes(existingRun.status)) {
+        // Se a run já existe MAS está parada/concluída OU não tem nenhum dispatch, permitimos reiniciar
+        const needsRestart = existingRun && (
+            ['stopped', 'completed', 'failed'].includes(existingRun.status) ||
+            existingRun.dispatches.length === 0
+        );
+
+        if (!existingRun || needsRestart) {
             console.log(`[CampaignEngine] Criando/Reiniciando RecoveryRun para pedido ${orderId} e campanha ${campaign.name}`);
 
             if (existingRun) {

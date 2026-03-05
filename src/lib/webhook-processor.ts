@@ -66,6 +66,7 @@ export async function processWebhookPayload(organizationId: string, provider: st
             where: { id: order.id },
             data: {
                 status: payload.status,
+                leadId: lead.id, // Garante que o pedido aponte para o lead com dados mais completos
                 paymentMethod: payload.payment.method || order.paymentMethod,
                 checkoutUrl: payload.checkoutUrl || order.checkoutUrl,
                 pixCopyPaste: payload.pixCopyPaste || order.pixCopyPaste,
