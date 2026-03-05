@@ -40,27 +40,29 @@ export const customAdapter: WebhookProviderAdapter = {
                 `evt_${Date.now()}`
             );
 
-            // 2. Extração do Cliente (Nome, Email, Telefone)
-            const customer = data.customer || data.client || data.buyer || data.cliente || data;
-            const name = customer.name || customer.full_name || customer.nome || customer.first_name || 'Cliente';
-            const email = customer.email || customer.email_address || customer.contact_email || 'sem@email.com';
+            // 2. Extração do Cliente (Nome, Email, Telefone) - Suporta CamelCase e variações
+            const customer = data.Customer || data.customer || data.Client || data.client || data.Buyer || data.buyer || data.Cliente || data.cliente || data;
+
+            const name = customer.full_name || customer.fullName || customer.full_name || customer.name || customer.nome || customer.first_name || data.customer_name || 'Cliente';
+            const email = customer.email || customer.email_address || customer.contact_email || data.customer_email || 'sem@email.com';
 
             // Telefone: tenta exaustivamente várias chaves comuns e sub-objetos
             let phone = String(
-                customer.phone ||
                 customer.mobile ||
+                customer.phone ||
                 customer.telefone ||
                 customer.celular ||
                 customer.whatsapp ||
                 customer.phone_number ||
+                customer.phoneNumber ||
                 customer.telephone ||
                 customer.full_phone ||
                 customer.contact_phone ||
                 customer.checkout_phone ||
                 customer.whatsapp_number ||
                 customer.phone_checkout_number ||
-                data.phone ||
                 data.mobile ||
+                data.phone ||
                 data.telefone ||
                 data.celular ||
                 data.full_phone ||
@@ -72,7 +74,7 @@ export const customAdapter: WebhookProviderAdapter = {
 
             // 3. Mapeamento de Status e Evento
             const rawStatus = String(data.status || data.order_status || data.purchase?.status || data.transaction?.status || data.financial_status || data.state || '').toLowerCase();
-            const rawEvent = String(data.event || data.event_type || data.eventType || data.type || '').toUpperCase();
+            const rawEvent = String(data.event || data.event_type || data.eventType || data.type || data.webhook_event_type || '').toUpperCase();
             const method = String(data.payment_method || data.paymentMethod || data.method || data.payment?.method || data.payment_type || data.type || '').toLowerCase();
 
             let status: any = 'pending';
@@ -118,8 +120,17 @@ export const customAdapter: WebhookProviderAdapter = {
                 eventType = 'checkout_abandoned';
             }
 
-            // 4. Valores Monetários
-            const amount = Number(data.amount || data.price || data.total || data.total_price || data.payment?.amount || data.purchase?.price?.value || data.total_amount || 0);
+            // 4. Valores Monetários (Suporta Kiwify Commissions)
+            const amount = Number(
+                data.amount ||
+                data.price ||
+                data.total ||
+                data.total_price ||
+                data.payment?.amount ||
+                data.purchase?.price?.value ||
+                data.total_amount ||
+                data.Commissions?.charge_amount || 0
+            );
 
             return {
                 externalOrderId: extId,
@@ -130,7 +141,7 @@ export const customAdapter: WebhookProviderAdapter = {
                 },
                 payment: {
                     amount: amount,
-                    currency: data.currency || data.payment?.currency || data.currency_code || 'BRL',
+                    currency: data.currency || data.payment?.currency || data.currency_code || data.Commissions?.currency || 'BRL',
                     method: method as any,
                 },
                 status: status,
