@@ -61,97 +61,292 @@ export function AddCampaignButton() {
     }
 
     return (
-        <div style={{ width: '100%', maxWidth: '448px' }}>
-            <form onSubmit={handleAdd} className={styles.fieldGroup}>
-                <div className={styles.fieldSet}>
-                    <h5 className={styles.fieldLegend}>Detalhes Essenciais</h5>
-                    <p className={styles.fieldDescription}>
-                        Identificação básica e disparo da campanha.
-                    </p>
-                    <div className={styles.fieldGroup}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            <label className={styles.shadcnLabel}>Nome da Campanha</label>
-                            <input required placeholder="Ex: Recuperação Pix - 10 minutos" className={styles.shadcnInput} value={name} onChange={e => setName(e.target.value)} />
-                        </div>
+        <>
+            {/* Overlay */}
+            <div
+                onClick={() => !loading && setIsOpen(false)}
+                style={{
+                    position: 'fixed', inset: 0,
+                    backgroundColor: 'rgba(0,0,0,0.6)',
+                    backdropFilter: 'blur(4px)',
+                    zIndex: 40,
+                }}
+            />
 
-                        <div className={styles.fieldRow}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                <label className={styles.shadcnLabel}>
-                                    Finalidade / Gatilho de Disparo
-                                </label>
-                                <select
-                                    className={styles.shadcnSelect}
-                                    value={triggerEvent}
-                                    onChange={e => setTriggerEvent(e.target.value)}
-                                >
-                                    {TRIGGER_OPTIONS.map(opt => (
-                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                    ))}
-                                </select>
+            {/* Modal */}
+            <div style={{
+                position: 'fixed',
+                top: '50%', left: '50%',
+                transform: 'translate(-50%, -50%)',
+                zIndex: 50,
+                width: '100%',
+                maxWidth: '640px',
+                backgroundColor: '#0a0a0a',
+                border: '1px solid #1f1f1f',
+                borderRadius: '16px',
+                boxShadow: '0 25px 60px rgba(0,0,0,0.7)',
+                overflow: 'hidden',
+            }}>
+                {/* Header */}
+                <div style={{
+                    padding: '24px 28px 20px',
+                    borderBottom: '1px solid #1a1a1a',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                }}>
+                    <div>
+                        <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.1em', color: '#a3e635', textTransform: 'uppercase', marginBottom: '6px' }}>Nova Campanha</p>
+                        <h2 style={{ fontSize: '20px', fontWeight: 600, color: '#ffffff', margin: 0, letterSpacing: '-0.025em' }}>Configurar Automação</h2>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => !loading && setIsOpen(false)}
+                        style={{ background: 'none', border: 'none', color: '#52525b', cursor: 'pointer', fontSize: '20px', lineHeight: 1, padding: '4px' }}
+                    >✕</button>
+                </div>
+
+                <form onSubmit={handleAdd} style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: '0' }}>
+
+                    {/* Seção 1 — Identificação */}
+                    <div style={{ marginBottom: '24px' }}>
+                        <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.12em', color: '#52525b', textTransform: 'uppercase', marginBottom: '14px' }}>Identificação</p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <label style={{ fontSize: '13px', fontWeight: 500, color: '#a1a1aa' }}>Nome da Campanha</label>
+                            <input
+                                required
+                                placeholder="Ex: Recuperação Pix — 10 min"
+                                value={name}
+                                onChange={e => setName(e.target.value)}
+                                style={{
+                                    height: '42px',
+                                    background: '#111111',
+                                    border: '1px solid #262626',
+                                    borderRadius: '10px',
+                                    color: '#ffffff',
+                                    fontSize: '14px',
+                                    padding: '0 14px',
+                                    outline: 'none',
+                                    width: '100%',
+                                    transition: 'border-color 0.15s',
+                                    fontFamily: 'inherit',
+                                }}
+                                onFocus={e => e.target.style.borderColor = '#a3e635'}
+                                onBlur={e => e.target.style.borderColor = '#262626'}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Divisor */}
+                    <div style={{ height: '1px', background: '#1a1a1a', marginBottom: '24px' }} />
+
+                    {/* Seção 2 — Disparo (grid 2 colunas) */}
+                    <div style={{ marginBottom: '24px' }}>
+                        <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.12em', color: '#52525b', textTransform: 'uppercase', marginBottom: '14px' }}>Disparo</p>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', gridColumn: '1 / span 2' }}>
+                                <label style={{ fontSize: '13px', fontWeight: 500, color: '#a1a1aa' }}>Gatilho</label>
+                                <div style={{ position: 'relative' }}>
+                                    <select
+                                        value={triggerEvent}
+                                        onChange={e => setTriggerEvent(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            height: '42px',
+                                            background: '#111111',
+                                            border: '1px solid #262626',
+                                            borderRadius: '10px',
+                                            color: '#ffffff',
+                                            fontSize: '14px',
+                                            padding: '0 40px 0 14px',
+                                            outline: 'none',
+                                            appearance: 'none',
+                                            cursor: 'pointer',
+                                            fontFamily: 'inherit',
+                                        }}
+                                    >
+                                        {TRIGGER_OPTIONS.map(opt => (
+                                            <option key={opt.value} value={opt.value} style={{ background: '#111' }}>{opt.label}</option>
+                                        ))}
+                                    </select>
+                                    <span style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', color: '#52525b', pointerEvents: 'none', fontSize: '12px' }}>▾</span>
+                                </div>
                                 {selectedTrigger && (
-                                    <p className={styles.fieldDescription} style={{ marginBottom: 0, marginTop: '4px' }}>
-                                        {selectedTrigger?.desc}
-                                    </p>
+                                    <p style={{ fontSize: '12px', color: '#52525b', margin: '4px 0 0', lineHeight: 1.5 }}>{selectedTrigger.desc}</p>
                                 )}
                             </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                <label className={styles.shadcnLabel}>Atraso no Disparo (minutos)</label>
-                                <input required type="number" min="0" placeholder="0" className={styles.shadcnInput} value={delayMinutes} onChange={e => setDelayMinutes(e.target.value)} />
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <label style={{ fontSize: '13px', fontWeight: 500, color: '#a1a1aa' }}>Atraso (min)</label>
+                                <input
+                                    required
+                                    type="number"
+                                    min="0"
+                                    placeholder="10"
+                                    value={delayMinutes}
+                                    onChange={e => setDelayMinutes(e.target.value)}
+                                    style={{
+                                        height: '42px',
+                                        background: '#111111',
+                                        border: '1px solid #262626',
+                                        borderRadius: '10px',
+                                        color: '#ffffff',
+                                        fontSize: '14px',
+                                        padding: '0 14px',
+                                        outline: 'none',
+                                        width: '100%',
+                                        fontFamily: 'inherit',
+                                    }}
+                                    onFocus={e => e.target.style.borderColor = '#a3e635'}
+                                    onBlur={e => e.target.style.borderColor = '#262626'}
+                                />
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <label style={{ fontSize: '13px', fontWeight: 500, color: '#a1a1aa' }}>Formato</label>
+                                <div style={{ position: 'relative' }}>
+                                    <select
+                                        value={messageType}
+                                        onChange={e => setMessageType(e.target.value as any)}
+                                        style={{
+                                            width: '100%',
+                                            height: '42px',
+                                            background: '#111111',
+                                            border: '1px solid #262626',
+                                            borderRadius: '10px',
+                                            color: '#ffffff',
+                                            fontSize: '14px',
+                                            padding: '0 40px 0 14px',
+                                            outline: 'none',
+                                            appearance: 'none',
+                                            cursor: 'pointer',
+                                            fontFamily: 'inherit',
+                                        }}
+                                    >
+                                        <option value="text" style={{ background: '#111' }}>Texto</option>
+                                        <option value="audio" style={{ background: '#111' }}>Áudio (URL)</option>
+                                    </select>
+                                    <span style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', color: '#52525b', pointerEvents: 'none', fontSize: '12px' }}>▾</span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div className={styles.fieldSeparator} />
+                    {/* Divisor */}
+                    <div style={{ height: '1px', background: '#1a1a1a', marginBottom: '24px' }} />
 
-                <div className={styles.fieldSet}>
-                    <h5 className={styles.fieldLegend}>Conteúdo da Mensagem</h5>
-                    <p className={styles.fieldDescription}>
-                        Defina o formato e a mídia que será disparada ao cliente.
-                    </p>
-                    <div className={styles.fieldGroup}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            <label className={styles.shadcnLabel}>Formato da Mensagem</label>
-                            <select className={styles.shadcnSelect} value={messageType} onChange={e => setMessageType(e.target.value as any)}>
-                                <option value="text">Texto</option>
-                                <option value="audio">Áudio (URL)</option>
-                            </select>
-                        </div>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            {messageType === 'text' ? (
-                                <>
-                                    <label className={styles.shadcnLabel}>Conteúdo do Texto</label>
-                                    <textarea
-                                        required
-                                        rows={3}
-                                        placeholder="Oi {{nome}}! Vi que você não finalizou o pagamento do {{produto}}. Seu pix ainda está disponível! Clique aqui: {{link}}"
-                                        className={styles.shadcnTextarea}
-                                        value={textContent}
-                                        onChange={e => setTextContent(e.target.value)}
-                                    />
-                                    <p className={styles.fieldDescription} style={{ marginBottom: 0, marginTop: '4px' }}>
-                                        Variáveis compatíveis: {'{{nome}}'}, {'{{produto}}'}, {'{{link}}'}
-                                    </p>
-                                </>
-                            ) : (
-                                <>
-                                    <label className={styles.shadcnLabel}>URL do Áudio (.mp3 / .ogg)</label>
-                                    <input required type="url" placeholder="https://seudominio.com/audio.mp3" className={styles.shadcnInput} value={mediaUrl} onChange={e => setMediaUrl(e.target.value)} />
-                                </>
-                            )}
-                        </div>
+                    {/* Seção 3 — Mensagem */}
+                    <div style={{ marginBottom: '28px' }}>
+                        <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.12em', color: '#52525b', textTransform: 'uppercase', marginBottom: '14px' }}>Mensagem</p>
+                        {messageType === 'text' ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <label style={{ fontSize: '13px', fontWeight: 500, color: '#a1a1aa' }}>Conteúdo</label>
+                                <textarea
+                                    required
+                                    rows={4}
+                                    placeholder={'Oi {{nome}}! Seu pagamento não foi finalizado. Clique aqui: {{link}}'}
+                                    value={textContent}
+                                    onChange={e => setTextContent(e.target.value)}
+                                    style={{
+                                        background: '#111111',
+                                        border: '1px solid #262626',
+                                        borderRadius: '10px',
+                                        color: '#ffffff',
+                                        fontSize: '14px',
+                                        padding: '12px 14px',
+                                        outline: 'none',
+                                        resize: 'vertical',
+                                        lineHeight: 1.6,
+                                        fontFamily: 'inherit',
+                                        width: '100%',
+                                    }}
+                                    onFocus={e => e.target.style.borderColor = '#a3e635'}
+                                    onBlur={e => e.target.style.borderColor = '#262626'}
+                                />
+                                <p style={{ fontSize: '11px', color: '#3f3f46', marginTop: '6px' }}>Variáveis: {'{{nome}}'} · {'{{produto}}'} · {'{{link}}'}</p>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <label style={{ fontSize: '13px', fontWeight: 500, color: '#a1a1aa' }}>URL do Áudio</label>
+                                <input
+                                    required
+                                    type="url"
+                                    placeholder="https://cdn.seusite.com/audio.mp3"
+                                    value={mediaUrl}
+                                    onChange={e => setMediaUrl(e.target.value)}
+                                    style={{
+                                        height: '42px',
+                                        background: '#111111',
+                                        border: '1px solid #262626',
+                                        borderRadius: '10px',
+                                        color: '#ffffff',
+                                        fontSize: '14px',
+                                        padding: '0 14px',
+                                        outline: 'none',
+                                        width: '100%',
+                                        fontFamily: 'inherit',
+                                    }}
+                                    onFocus={e => e.target.style.borderColor = '#a3e635'}
+                                    onBlur={e => e.target.style.borderColor = '#262626'}
+                                />
+                            </div>
+                        )}
                     </div>
-                </div>
 
-                <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
-                    <button type="submit" className={styles.shadcnButtonPrimary} disabled={loading}>
-                        {loading ? 'Salvando...' : 'Salvar Campanha'}
-                    </button>
-                    <button type="button" onClick={() => setIsOpen(false)} className={styles.shadcnButtonOutline} disabled={loading}>Cancelar</button>
-                </div>
-            </form>
-        </div>
+                    {/* Footer Actions */}
+                    <div style={{
+                        display: 'flex',
+                        gap: '10px',
+                        justifyContent: 'flex-end',
+                        paddingTop: '4px',
+                        borderTop: '1px solid #1a1a1a',
+                    }}>
+                        <button
+                            type="button"
+                            onClick={() => !loading && setIsOpen(false)}
+                            disabled={loading}
+                            style={{
+                                height: '40px',
+                                padding: '0 20px',
+                                background: 'transparent',
+                                border: '1px solid #262626',
+                                borderRadius: '10px',
+                                color: '#71717a',
+                                fontSize: '14px',
+                                fontWeight: 500,
+                                cursor: 'pointer',
+                                fontFamily: 'inherit',
+                                transition: 'all 0.15s',
+                            }}
+                            onMouseEnter={e => { (e.target as HTMLButtonElement).style.borderColor = '#3f3f46'; (e.target as HTMLButtonElement).style.color = '#a1a1aa'; }}
+                            onMouseLeave={e => { (e.target as HTMLButtonElement).style.borderColor = '#262626'; (e.target as HTMLButtonElement).style.color = '#71717a'; }}
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            style={{
+                                height: '40px',
+                                padding: '0 24px',
+                                background: loading ? '#52522a' : '#a3e635',
+                                border: 'none',
+                                borderRadius: '10px',
+                                color: '#000000',
+                                fontSize: '14px',
+                                fontWeight: 600,
+                                cursor: loading ? 'not-allowed' : 'pointer',
+                                fontFamily: 'inherit',
+                                transition: 'all 0.15s',
+                                letterSpacing: '-0.01em',
+                            }}
+                        >
+                            {loading ? 'Salvando...' : 'Criar Campanha'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </>
     );
 }
 
