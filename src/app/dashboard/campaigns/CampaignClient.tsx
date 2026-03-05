@@ -7,16 +7,16 @@ import { addCampaign, deleteCampaign, updateCampaign } from '../actions';
 
 // Gatilhos disponíveis para campanhas de recuperação
 const TRIGGER_OPTIONS = [
-    { value: 'pix_generated', label: '💸 Pix Gerado', desc: 'Dispara quando o Pix é gerado mas não pago' },
-    { value: 'boleto_generated', label: '📄 Boleto Gerado', desc: 'Dispara quando o boleto é emitido mas não pago' },
-    { value: 'card_pending', label: '💳 Cartão Pendente', desc: 'Dispara quando o cartão está em análise/pendente' },
-    { value: 'card_declined', label: '❌ Cartão Recusado', desc: 'Dispara quando o cartão é recusado/negado' },
-    { value: 'checkout_started', label: '🛒 Checkout Iniciado', desc: 'Dispara quando o usuário inicia o checkout' },
-    { value: 'checkout_abandoned', label: '🚪 Checkout Abandonado', desc: 'Dispara quando o usuário abandona o checkout' },
-    { value: 'order_created', label: '📦 Pedido Criado', desc: 'Dispara quando um pedido é criado no sistema' },
-    { value: 'payment_failed', label: '⚠️ Pagamento Falhou', desc: 'Dispara quando qualquer pagamento falha' },
-    { value: 'subscription_expired', label: '📆 Assinatura Expirada', desc: 'Dispara quando uma assinatura expira sem renovação' },
-    { value: 'refund_requested', label: '↩️ Reembolso Solicitado', desc: 'Dispara quando cliente pede reembolso' },
+    { value: 'pix_generated', label: 'Pix Gerado', desc: 'Dispara quando o Pix é gerado mas não pago' },
+    { value: 'boleto_generated', label: 'Boleto Gerado', desc: 'Dispara quando o boleto é emitido mas não pago' },
+    { value: 'card_pending', label: 'Cartão Pendente', desc: 'Dispara quando o cartão está em análise/pendente' },
+    { value: 'card_declined', label: 'Cartão Recusado', desc: 'Dispara quando o cartão é recusado/negado' },
+    { value: 'checkout_started', label: 'Checkout Iniciado', desc: 'Dispara quando o usuário inicia o checkout' },
+    { value: 'checkout_abandoned', label: 'Checkout Abandonado', desc: 'Dispara quando o usuário abandona o checkout' },
+    { value: 'order_created', label: 'Pedido Criado', desc: 'Dispara quando um pedido é criado no sistema' },
+    { value: 'payment_failed', label: 'Pagamento Falhou', desc: 'Dispara quando qualquer pagamento falha' },
+    { value: 'subscription_expired', label: 'Assinatura Expirada', desc: 'Dispara quando uma assinatura expira sem renovação' },
+    { value: 'refund_requested', label: 'Reembolso Solicitado', desc: 'Dispara quando cliente pede reembolso' },
 ];
 
 export function AddCampaignButton() {
@@ -77,7 +77,7 @@ export function AddCampaignButton() {
                 {/* Gatilho / Finalidade */}
                 <div>
                     <label className={styles.shadcnLabel}>
-                        🎯 Finalidade / Gatilho de Disparo
+                        Finalidade / Gatilho de Disparo
                     </label>
                     <select
                         className={styles.shadcnSelect}
@@ -90,7 +90,7 @@ export function AddCampaignButton() {
                     </select>
                     {selectedTrigger && (
                         <p className={styles.shadcnHelperText}>
-                            ℹ️ {selectedTrigger?.desc}
+                            {selectedTrigger?.desc}
                         </p>
                     )}
                 </div>
@@ -104,8 +104,8 @@ export function AddCampaignButton() {
                     <div style={{ flex: 1 }}>
                         <label className={styles.shadcnLabel}>Formato da Mensagem</label>
                         <select className={styles.shadcnSelect} value={messageType} onChange={e => setMessageType(e.target.value as any)}>
-                            <option value="text">💬 Texto</option>
-                            <option value="audio">🎙️ Áudio (URL)</option>
+                            <option value="text">Texto</option>
+                            <option value="audio">Áudio (URL)</option>
                         </select>
                     </div>
                 </div>
