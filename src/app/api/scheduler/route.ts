@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     try {
         const now = new Date();
 
-        // Busca dispatches pendentes que já passaram do horário
+        // Busca o próximo dispatch pendente (apenas 1 por execução para não causar timeout na Vercel)
         const pendingDispatches = await prisma.stepDispatch.findMany({
             where: {
                 status: 'pending',
@@ -33,8 +33,10 @@ export async function GET(req: NextRequest) {
                 },
                 step: true
             },
-            take: 20 // processa em lotes menores para ter tempo de simular comportamento humano
+            take: 1, // 1 por execução — o cron roda a cada 1 minuto naturalmente
+            orderBy: { scheduledFor: 'asc' }
         });
+
 
         let sent = 0, skipped = 0, failed = 0;
 

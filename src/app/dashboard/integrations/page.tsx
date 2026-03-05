@@ -5,6 +5,8 @@ import styles from '../dashboard.module.css';
 import { AddWhatsAppButton, DeleteWhatsAppButton } from './WhatsAppClient';
 import { WebhookGridClient } from './WebhookGridClient';
 import { EditWebhookSecretButton } from './WebhookClient';
+import { EventFeed } from './EventFeed';
+
 
 export default async function IntegrationsPage() {
     const session = await getServerSession(authOptions) as any;
@@ -38,6 +40,10 @@ export default async function IntegrationsPage() {
                     Para habilitar o envio automático de mensagens, conecte seu aparelho através de um <strong>QR Code</strong> abaixo. Aproveite nossa tecnologia Anti-Ban ativada por padrão. Em seguida, cadastre o <strong>Webhook</strong> do nosso sistema na sua plataforma de checkout.
                 </p>
             </div>
+
+            {/* FEED DE EVENTOS EM TEMPO REAL */}
+            <EventFeed />
+
 
             <div className={styles.header}>
                 <h1 className={styles.title}>Integrações e Webhooks</h1>

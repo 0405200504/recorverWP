@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import styles from '../dashboard.module.css';
 import { addWebhookConfig, deleteWebhookConfig } from '../actions';
 
@@ -23,13 +23,11 @@ export function WebhookGridClient({ configs, orgId }: { configs: any[], orgId: s
     const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({ name: '', clientId: '', clientSecret: '', webhookToken: '' });
-    const [baseUrl, setBaseUrl] = useState('https://seudominio.com');
+    const [baseUrl, setBaseUrl] = useState('');
 
-    import('react').then((React) => {
-        React.useEffect(() => {
-            setBaseUrl(window.location.origin);
-        }, []);
-    });
+    useEffect(() => {
+        setBaseUrl(window.location.origin);
+    }, []);
 
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);

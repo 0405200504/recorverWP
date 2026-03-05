@@ -35,9 +35,13 @@ export async function processWebhookPayload(organizationId: string, provider: st
             name: payload.lead.name,
             phoneE164: payload.lead.phoneE164,
             email: payload.lead.email,
+            consentWhatsapp: true, // consentimento implícito ao iniciar checkout
+            consentSource: 'webhook',
+            consentAt: new Date(),
             lastSeenAt: new Date(payload.timestamp),
         }
     });
+
 
     if (!order) {
         order = await prisma.order.create({
