@@ -1,9 +1,15 @@
 export type CanonicalEventType =
     | 'checkout_started'
+    | 'checkout_abandoned'
     | 'pix_generated'
     | 'boleto_generated'
+    | 'card_pending'
+    | 'card_declined'
     | 'payment_failed'
     | 'payment_approved'
+    | 'order_created'
+    | 'subscription_expired'
+    | 'refund_requested'
     | 'refund';
 
 export type PaymentMethod = 'pix' | 'boleto' | 'card' | 'other';

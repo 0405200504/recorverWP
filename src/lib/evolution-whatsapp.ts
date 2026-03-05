@@ -139,7 +139,8 @@ export async function isInstanceConnected(instanceName: string): Promise<boolean
     try {
         const res = await fetch(`${EVO_URL}/instance/connectionState/${instanceName}`, { headers });
         const data = await res.json();
-        return data?.instance?.state === 'open';
+        const state = data?.instance?.state ?? data?.state ?? '';
+        return state === 'open';
     } catch {
         return false;
     }
