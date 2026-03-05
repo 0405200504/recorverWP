@@ -2,49 +2,72 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-const ZAPI_BASE = 'https://api.z-api.io/instances';
-const ZAPI_CLIENT_TOKEN = process.env.ZAPI_CLIENT_TOKEN || '';
+const WAHA_URL = process.env.WAHA_URL || 'https://waha-production-xxxx.up.railway.app';
+const WAHA_API_KEY = process.env.WAHA_API_KEY || '';
 
-// POST — cria instância Z-API e retorna QR Code
+function wahaHeaders() {
+    const h: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (WAHA_API_KEY) h['X-Api-Key'] = WAHA_API_KEY;
+    return h;
+}
+
+// POST /api/whatsapp/instance — inicia sessão e retorna QR Code
 export async function POST(req: NextRequest) {
     try {
-        const { instanceId, token } = await req.json();
-        if (!instanceId || !token) {
-            return NextResponse.json({ error: 'instanceId e token são obrigatórios' }, { status: 400 });
+        const { sessionName } = await req.json();
+        const name = (sessionName || 'default').replace(/[^a-zA-Z0-9_-]/g, '_');
+
+        // Tenta deletar sessão antiga
+        await fetch(`${WAHA_URL}/api/sessions/${name}`, {
+            method: 'DELETE', headers: wahaHeaders()
+        }).catch(() => { });
+
+        await new Promise(r => setTimeout(r, 500));
+
+        // Cria nova sessão WAHA
+        const createRes = await fetch(`${WAHA_URL}/api/sessions`, {
+            method: 'POST',
+            headers: wahaHeaders(),
+            body: JSON.stringify({ name, config: { webhooks: [] } })
+        });
+
+        if (!createRes.ok) {
+            const txt = await createRes.text();
+            return NextResponse.json({ error: `Erro ao criar sessão: ${txt}` }, { status: 400 });
         }
 
-        // Busca o QR code da instância Z-API
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-        if (ZAPI_CLIENT_TOKEN) headers['Client-Token'] = ZAPI_CLIENT_TOKEN;
-
-        const res = await fetch(`${ZAPI_BASE}/${instanceId}/token/${token}/qr-code/image`, { headers });
-
-        if (!res.ok) {
-            const txt = await res.text();
-            return NextResponse.json({ error: `Z-API retornou: ${txt}` }, { status: 400 });
+        // Aguarda WAHA inicializar e gera QR (polling até 30s)
+        for (let i = 0; i < 15; i++) {
+            await new Promise(r => setTimeout(r, 2000));
+            try {
+                const qrRes = await fetch(`${WAHA_URL}/api/sessions/${name}/auth/qr`, {
+                    headers: wahaHeaders()
+                });
+                if (qrRes.ok) {
+                    const data = await qrRes.json();
+                    const base64 = data?.data || data?.qr || data?.base64;
+                    if (base64) {
+                        const qrBase64 = base64.startsWith('data:') ? base64 : `data:image/png;base64,${base64}`;
+                        return NextResponse.json({ qrBase64, sessionName: name });
+                    }
+                }
+            } catch { /* continua */ }
         }
 
-        // Z-API retorna a imagem do QR como bytes — converte para base64
-        const buffer = await res.arrayBuffer();
-        const base64 = Buffer.from(buffer).toString('base64');
-        return NextResponse.json({ qrBase64: `data:image/png;base64,${base64}` });
+        return NextResponse.json({ error: 'QR Code não gerado. Verifique se o WAHA está rodando.' }, { status: 504 });
 
     } catch (err: any) {
         return NextResponse.json({ error: err.message }, { status: 500 });
     }
 }
 
-// GET — verifica status de conexão de uma instância Z-API
+// GET /api/whatsapp/instance?name=xxx — verifica status da sessão
 export async function GET(req: NextRequest) {
-    const instanceId = req.nextUrl.searchParams.get('instanceId');
-    const token = req.nextUrl.searchParams.get('token');
-    if (!instanceId || !token) return new NextResponse('Missing params', { status: 400 });
-
+    const name = req.nextUrl.searchParams.get('name') || 'default';
     try {
-        const headers: Record<string, string> = {};
-        if (ZAPI_CLIENT_TOKEN) headers['Client-Token'] = ZAPI_CLIENT_TOKEN;
-
-        const res = await fetch(`${ZAPI_BASE}/${instanceId}/token/${token}/status`, { headers });
+        const res = await fetch(`${WAHA_URL}/api/sessions/${name}`, {
+            headers: wahaHeaders()
+        });
         const data = await res.json();
         return NextResponse.json(data);
     } catch (err: any) {
@@ -52,17 +75,13 @@ export async function GET(req: NextRequest) {
     }
 }
 
-// DELETE — desconecta instância Z-API
+// DELETE — remove sessão
 export async function DELETE(req: NextRequest) {
-    const instanceId = req.nextUrl.searchParams.get('instanceId');
-    const token = req.nextUrl.searchParams.get('token');
-    if (!instanceId || !token) return new NextResponse('Missing params', { status: 400 });
-
+    const name = req.nextUrl.searchParams.get('name') || 'default';
     try {
-        const headers: Record<string, string> = {};
-        if (ZAPI_CLIENT_TOKEN) headers['Client-Token'] = ZAPI_CLIENT_TOKEN;
-
-        await fetch(`${ZAPI_BASE}/${instanceId}/token/${token}/disconnect`, { method: 'DELETE', headers });
+        await fetch(`${WAHA_URL}/api/sessions/${name}`, {
+            method: 'DELETE', headers: wahaHeaders()
+        });
         return new NextResponse('OK');
     } catch (err: any) {
         return new NextResponse(err.message, { status: 500 });
