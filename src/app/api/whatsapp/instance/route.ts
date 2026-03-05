@@ -20,7 +20,17 @@ export async function POST(req: NextRequest) {
         const res = await fetch(`${EVO_URL}/instance/create`, {
             method: 'POST',
             headers: evoHeaders,
-            body: JSON.stringify({ instanceName: name, qrcode: true, integration: 'WHATSAPP-BAILEYS' }),
+            body: JSON.stringify({
+                instanceName: name,
+                qrcode: true,
+                integration: 'WHATSAPP-BAILEYS',
+                reject_call: true,
+                msgResend: false,
+                syncFullHistory: false,
+                readMessages: false,
+                readStatus: false,
+                groupsIgnore: true
+            }),
         });
 
         if (!res.ok) {
