@@ -19,17 +19,11 @@ export default async function IntegrationsPage() {
     const org = await prisma.organization.findUnique({
         where: { id: orgId },
         include: { whatsappNumbers: true, webhookConfigs: true }
-    });
+    }) as any;
 
     if (!org) return <div>Organização não encontrada.</div>;
 
-    // Apenas para display no painel, omitindo validações completas
-    const webhookUrls = ['hotmart', 'kiwify', 'cakto', 'shopify', 'custom'].map(provider => {
-        return {
-            name: provider.toUpperCase(),
-            url: `https://yourdomain.com/api/webhooks/checkout/${provider}`
-        }
-    });
+
 
     return (
         <div>
@@ -59,7 +53,7 @@ export default async function IntegrationsPage() {
 
                     <WebhookGridClient configs={org.webhookConfigs} orgId={orgId} />
 
-                    <div style={{ marginTop: '32px', borderTop: '1px solid #27272a', paddingTop: '24px', whiteSpace: 'pre-wrap' }}>
+                    <div style={{ marginTop: '32px', borderTop: '1px solid #27272a', paddingTop: '24px' }}>
                         <p style={{ fontSize: '14px' }}><strong>Webhook Secret Master (para Custom Auth via HMAC):</strong></p>
                         <EditWebhookSecretButton currentSecret={org.webhook_secret} />
                     </div>
@@ -67,7 +61,7 @@ export default async function IntegrationsPage() {
 
                 <div className={styles.card}>
                     <h2 className={styles.title} style={{ fontSize: '18px', marginBottom: '16px' }}>📱 Aparelhos Conectados (WhatsApp)</h2>
-                    {org.whatsappNumbers.map(wn => (
+                    {org.whatsappNumbers.map((wn: any) => (
                         <div key={wn.id} style={{ border: '1px solid #27272a', background: '#18181b', padding: '16px', borderRadius: '12px', marginBottom: '16px', position: 'relative' }}>
                             <div style={{ position: 'absolute', top: '16px', right: '16px' }}>
                                 <DeleteWhatsAppButton id={wn.id} />

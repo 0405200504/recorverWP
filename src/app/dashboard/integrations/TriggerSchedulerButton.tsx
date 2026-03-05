@@ -57,7 +57,7 @@ export function TriggerSchedulerButton() {
                     <div style={{ marginBottom: '4px', fontWeight: 'bold' }}>
                         {result.error ? '❌ Falha' : '✅ Resultado do Processamento:'}
                     </div>
-                    <pre style={{ margin: 0, whitespace: 'pre-wrap', wordBreak: 'break-all' }}>
+                    <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
                         {JSON.stringify(result, null, 2)}
                     </pre>
                 </div>
