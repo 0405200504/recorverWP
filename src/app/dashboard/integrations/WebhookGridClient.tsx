@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import styles from '../dashboard.module.css';
 import { addWebhookConfig, deleteWebhookConfig } from '../actions';
+
 
 const PROVIDERS = [
     { id: 'cloudfy', name: 'Cloudfy' },
@@ -20,6 +22,7 @@ const PROVIDERS = [
 ];
 
 export function WebhookGridClient({ configs, orgId }: { configs: any[], orgId: string }) {
+    const router = useRouter();
     const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({ name: '', clientId: '', clientSecret: '', webhookToken: '' });
@@ -42,6 +45,7 @@ export function WebhookGridClient({ configs, orgId }: { configs: any[], orgId: s
             await addWebhookConfig({ ...formData, provider: selectedProvider });
             setSelectedProvider(null);
             setFormData({ name: '', clientId: '', clientSecret: '', webhookToken: '' });
+            router.refresh();
         } catch (err) {
             alert('Erro ao criar webhook');
         } finally {
@@ -54,8 +58,10 @@ export function WebhookGridClient({ configs, orgId }: { configs: any[], orgId: s
         setLoading(true);
         try {
             await deleteWebhookConfig(id);
+            router.refresh();
         } catch (err) {
             alert('Erro ao remover webhook');
+        } finally {
             setLoading(false);
         }
     }
