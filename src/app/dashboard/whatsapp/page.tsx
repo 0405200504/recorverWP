@@ -1,14 +1,15 @@
 import styles from '../dashboard.module.css';
-import { WhatsAppInbox } from './WhatsAppInbox';
+import { WhatsAppEmbed } from './WhatsAppInbox';
 
 export default function WhatsAppPage() {
     return (
         <div>
             <div className={styles.header}>
                 <h1 className={styles.title}>WhatsApp</h1>
-                <p className={styles.subtitle}>Caixa de entrada das suas conversas</p>
+                <p className={styles.subtitle}>Sua caixa de entrada — mesma sessão conectada em Integrações</p>
             </div>
-            <WhatsAppInbox />
+            <WhatsAppEmbed />
         </div>
     );
 }
+

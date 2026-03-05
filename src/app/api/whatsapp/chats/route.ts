@@ -45,10 +45,26 @@ export async function GET(req: NextRequest) {
             body: JSON.stringify({})
         });
         const data = await res.json();
-        return NextResponse.json({ chats: Array.isArray(data) ? data : [], instanceName });
+
+        // Busca o ID interno da instância para montar URL do manager
+        let instanceId = instanceName;
+        try {
+            const instRes = await fetch(`${EVO_URL}/instance/fetchInstances?instanceName=${instanceName}`, { headers: evoHeaders });
+            const instData = await instRes.json();
+            const inst = Array.isArray(instData) ? instData[0] : instData;
+            instanceId = inst?.instance?.id || inst?.id || instanceName;
+        } catch { /* usa instanceName como fallback */ }
+
+        return NextResponse.json({
+            chats: Array.isArray(data) ? data : [],
+            instanceName,
+            instanceId,
+            evoUrl: EVO_URL
+        });
     } catch {
-        return NextResponse.json({ chats: [], instanceName });
+        return NextResponse.json({ chats: [], instanceName, instanceId: instanceName, evoUrl: EVO_URL });
     }
+
 }
 
 // POST — envia mensagem
