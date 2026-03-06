@@ -221,3 +221,14 @@ model WhatsAppTemplate {
 
   @@unique([organizationId, name, language])
 }
+
+model PasswordResetToken {
+  id        String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  email     String
+  token     String   @unique
+  expires   DateTime @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([email])
+}
+

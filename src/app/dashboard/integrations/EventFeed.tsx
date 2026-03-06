@@ -81,7 +81,7 @@ export function EventFeed() {
                 </div>
             )}
 
-            {events.map((ev, i) => (
+            {events.slice(0, 3).map((ev, i) => (
                 <div key={ev.id} style={{
                     display: 'flex',
                     alignItems: 'center',

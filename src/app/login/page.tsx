@@ -4,7 +4,7 @@ import { useState } from 'react';
 import styles from './page.module.css';
 
 export default function LoginPage() {
-    const [isLogin, setIsLogin] = useState(true);
+    const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login');
     const [name, setName] = useState('');
     const [companyName, setCompanyName] = useState('');
     const [email, setEmail] = useState('');
@@ -19,7 +19,7 @@ export default function LoginPage() {
         setError('');
         setSuccessMsg('');
 
-        if (isLogin) {
+        if (mode === 'login') {
             try {
                 const res = await signIn('credentials', {
                     email, password,
@@ -40,7 +40,7 @@ export default function LoginPage() {
                 setError('Erro de conexão. Tente novamente.');
                 setLoading(false);
             }
-        } else {
+        } else if (mode === 'register') {
             try {
                 const response = await fetch('/api/auth/register', {
                     method: 'POST',
@@ -54,8 +54,26 @@ export default function LoginPage() {
                 }
 
                 setSuccessMsg('Conta criada com sucesso. Faça seu login para continuar.');
-                setIsLogin(true);
+                setMode('login');
                 setPassword('');
+            } catch (err: any) {
+                setError(err.message || 'Ocorreu um erro.');
+            } finally {
+                setLoading(false);
+            }
+        } else if (mode === 'forgot') {
+            try {
+                const response = await fetch('/api/auth/forgot-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Erro ao solicitar redefinição.');
+                }
+
+                setSuccessMsg('O link de recuperação foi "enviado". Verifique a resposta simulada no console do Next.js!');
             } catch (err: any) {
                 setError(err.message || 'Ocorreu um erro.');
             } finally {
@@ -64,8 +82,8 @@ export default function LoginPage() {
         }
     };
 
-    const switchMode = (toLogin: boolean) => {
-        setIsLogin(toLogin);
+    const switchMode = (newMode: 'login' | 'register' | 'forgot') => {
+        setMode(newMode);
         setError('');
         setSuccessMsg('');
     };
@@ -85,19 +103,21 @@ export default function LoginPage() {
                 </div>
 
                 <h1 className={styles.title}>
-                    {isLogin ? 'Acesso à plataforma' : 'Criar sua conta'}
+                    {mode === 'login' && 'Acesso à plataforma'}
+                    {mode === 'register' && 'Criar sua conta'}
+                    {mode === 'forgot' && 'Recuperar Senha'}
                 </h1>
                 <p className={styles.subtitle}>
-                    {isLogin
-                        ? 'Entre com suas credenciais para gerenciar suas campanhas.'
-                        : 'Cadastre sua empresa e comece a recuperar vendas automaticamente.'}
+                    {mode === 'login' && 'Entre com suas credenciais para gerenciar suas campanhas.'}
+                    {mode === 'register' && 'Cadastre sua empresa e comece a recuperar vendas automaticamente.'}
+                    {mode === 'forgot' && 'Informe seu e-mail para receber um link de redefinição de senha.'}
                 </p>
 
                 {error && <p className={styles.errorMsg}>{error}</p>}
                 {successMsg && <p className={styles.successMsg}>{successMsg}</p>}
 
                 <form onSubmit={handleSubmit}>
-                    {!isLogin && (
+                    {mode === 'register' && (
                         <>
                             <div className={styles.formGroup}>
                                 <label className={styles.label}>Seu nome</label>
@@ -135,27 +155,38 @@ export default function LoginPage() {
                             placeholder="voce@empresa.com"
                         />
                     </div>
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>Senha</label>
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={e => setPassword(e.target.value)}
-                            required
-                            className={styles.input}
-                            placeholder="••••••••"
-                        />
-                    </div>
+
+                    {mode !== 'forgot' && (
+                        <div className={styles.formGroup}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                <label className={styles.label} style={{ marginBottom: 0 }}>Senha</label>
+                                {mode === 'login' && (
+                                    <button type="button" onClick={() => switchMode('forgot')} className={styles.switchLink} style={{ fontSize: '13px', border: 'none', background: 'none' }}>
+                                        Esqueci a senha
+                                    </button>
+                                )}
+                            </div>
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={e => setPassword(e.target.value)}
+                                required
+                                className={styles.input}
+                                placeholder="••••••••"
+                            />
+                        </div>
+                    )}
+
                     <button type="submit" className={styles.button} disabled={loading}>
-                        {loading ? 'Aguarde...' : isLogin ? 'Entrar' : 'Criar conta'}
+                        {loading ? 'Aguarde...' : mode === 'login' ? 'Entrar' : mode === 'register' ? 'Criar conta' : 'Enviar instruções'}
                     </button>
                 </form>
 
                 <div className={styles.switchText}>
-                    {isLogin ? (
-                        <>Não tem uma conta?<span className={styles.switchLink} onClick={() => switchMode(false)}>Cadastre-se</span></>
+                    {mode === 'login' ? (
+                        <>Não tem uma conta?<span className={styles.switchLink} onClick={() => switchMode('register')}>Cadastre-se</span></>
                     ) : (
-                        <>Já tem uma conta?<span className={styles.switchLink} onClick={() => switchMode(true)}>Fazer login</span></>
+                        <>Voltar para a página de <span className={styles.switchLink} onClick={() => switchMode('login')}>Login</span></>
                     )}
                 </div>
             </div>

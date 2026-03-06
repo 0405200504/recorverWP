@@ -84,6 +84,7 @@ function createDefaultStep(): CampaignStep {
 // ─── Add Campaign ─────────────────────────────────────────────────
 export function AddCampaignButton() {
     const [isOpen, setIsOpen] = useState(false);
+    const [isAdvancedMode, setIsAdvancedMode] = useState(false);
     const [loading, setLoading] = useState(false);
     const [name, setName] = useState('');
     const [triggerEvent, setTriggerEvent] = useState('pix_generated');
@@ -95,6 +96,7 @@ export function AddCampaignButton() {
         try {
             await addCampaign({ name, triggerEvent, steps });
             setIsOpen(false);
+            setIsAdvancedMode(false);
             setName('');
             setTriggerEvent('pix_generated');
             setSteps([createDefaultStep()]);
@@ -129,7 +131,7 @@ export function AddCampaignButton() {
     return (
         <>
             <div className={styles.overlay} onClick={() => !loading && setIsOpen(false)} />
-            <div className={styles.modal} style={{ maxWidth: '600px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+            <div className={styles.modal} style={{ maxWidth: isAdvancedMode ? '1200px' : '600px', width: isAdvancedMode ? '95vw' : '100%', height: isAdvancedMode ? '90vh' : 'auto', maxHeight: '90vh', display: 'flex', flexDirection: 'column', transition: 'all 0.3s ease' }}>
                 <div className={styles.modalHeader} style={{ flexShrink: 0 }}>
                     <div>
                         <p className={styles.modalEyebrow}>Nova Campanha</p>
@@ -164,8 +166,66 @@ export function AddCampaignButton() {
                     <div className={styles.modalDivider} />
 
                     <div className={styles.modalSection}>
-                        <p className={styles.modalSectionLabel}>Fluxo Visual de Mensagens</p>
-                        <FlowBuilder steps={steps} setSteps={setSteps} triggerEvent={TRIGGER_OPTIONS.find(o => o.value === triggerEvent)?.label || ''} />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                            <p className={styles.modalSectionLabel} style={{ marginBottom: 0 }}>{isAdvancedMode ? 'Fluxo Visual de Mensagens' : 'Mensagem da Campanha'}</p>
+                            {isAdvancedMode && (
+                                <button type="button" onClick={() => { setIsAdvancedMode(false); setSteps([steps[0] || createDefaultStep()]); }} style={{ fontSize: '12px', background: 'var(--surface-3)', border: 'none', color: 'var(--text-1)', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer' }}>
+                                    Voltar para Modo Simples (Apaga funil)
+                                </button>
+                            )}
+                        </div>
+
+                        {isAdvancedMode ? (
+                            <FlowBuilder steps={steps} setSteps={setSteps} triggerEvent={TRIGGER_OPTIONS.find(o => o.value === triggerEvent)?.label || ''} />
+                        ) : (
+                            <div style={{ background: 'var(--app-bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '16px', position: 'relative' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                                    <div>
+                                        <label className={styles.label}>Atraso (após {TRIGGER_OPTIONS.find(o => o.value === triggerEvent)?.label})</label>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            <input required type="number" min="0" value={steps[0]?.delayValue ?? 10} onChange={e => updateStep(0, 'delayValue', Number(e.target.value))} style={{ ...inputStyle, width: '60%' }} onFocus={onFocusGlow} onBlur={onBlurGlow} />
+                                            <select value={steps[0]?.delayUnit ?? 'minutes'} onChange={e => updateStep(0, 'delayUnit', e.target.value)} style={{ ...selectStyle, flex: 1, width: 'auto' }}>
+                                                <option value="seconds">Seg</option>
+                                                <option value="minutes">Min</option>
+                                                <option value="hours">Horas</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className={styles.label}>Formato</label>
+                                        <div className={styles.tabGroup}>
+                                            <button type="button" onClick={() => updateStep(0, 'messageType', 'text')} className={`${styles.tab} ${steps[0]?.messageType === 'text' ? styles.tabActive : ''}`} style={{ padding: '0 8px' }}>
+                                                <IconText /> Texto
+                                            </button>
+                                            <button type="button" onClick={() => updateStep(0, 'messageType', 'audio')} className={`${styles.tab} ${steps[0]?.messageType === 'audio' ? styles.tabActive : ''}`} style={{ padding: '0 8px' }}>
+                                                <IconAudio /> Áudio
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {steps[0]?.messageType === 'text' ? (
+                                    <div>
+                                        <label className={styles.label}>Texto da mensagem</label>
+                                        <textarea required rows={3} placeholder="Sua mensagem aqui... Use {{nome}}" value={steps[0]?.textContent ?? ''} onChange={e => updateStep(0, 'textContent', e.target.value)} style={{ ...inputStyle, height: 'auto', padding: '12px 14px', resize: 'vertical' }} onFocus={onFocusGlow} onBlur={onBlurGlow} />
+                                    </div>
+                                ) : (
+                                    <div>
+                                        <label className={styles.label}>URL do áudio</label>
+                                        <input required type="url" placeholder="https://..." value={steps[0]?.mediaUrl ?? ''} onChange={e => updateStep(0, 'mediaUrl', e.target.value)} style={inputStyle} onFocus={onFocusGlow} onBlur={onBlurGlow} />
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {!isAdvancedMode && (
+                            <div style={{ marginTop: '16px', textAlign: 'center' }}>
+                                <button type="button" onClick={() => setIsAdvancedMode(true)} style={{ background: 'var(--accent-bg)', border: '1px solid var(--accent-glow)', color: 'var(--accent)', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '8px', width: '100%', justifyContent: 'center' }}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                                    Montar fluxo avançado de mensagens
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     <div className={styles.modalFooter} style={{ padding: '24px 0 0' }}>
@@ -219,6 +279,7 @@ export function EditCampaignButton({ id, name: initialName, triggerEvent: initia
         };
     }) : [createDefaultStep()];
 
+    const [isAdvancedMode, setIsAdvancedMode] = useState(initialSteps.length > 1);
     const [name, setName] = useState(initialName);
     const [triggerEvent, setTriggerEvent] = useState(initialTrigger);
     const [steps, setSteps] = useState<CampaignStep[]>(parsedSteps);
@@ -252,7 +313,7 @@ export function EditCampaignButton({ id, name: initialName, triggerEvent: initia
     return (
         <>
             <div className={styles.overlay} onClick={() => !loading && setIsOpen(false)} />
-            <div className={styles.modal} style={{ maxWidth: '600px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+            <div className={styles.modal} style={{ maxWidth: isAdvancedMode ? '1200px' : '600px', width: isAdvancedMode ? '95vw' : '100%', height: isAdvancedMode ? '90vh' : 'auto', maxHeight: '90vh', display: 'flex', flexDirection: 'column', transition: 'all 0.3s ease' }}>
                 <div className={styles.modalHeader} style={{ flexShrink: 0 }}>
                     <div>
                         <p className={styles.modalEyebrow}>Campanha</p>
@@ -281,8 +342,66 @@ export function EditCampaignButton({ id, name: initialName, triggerEvent: initia
                     <div className={styles.modalDivider} />
 
                     <div className={styles.modalSection}>
-                        <p className={styles.modalSectionLabel}>Fluxo Visual de Mensagens</p>
-                        <FlowBuilder steps={steps} setSteps={setSteps} triggerEvent={TRIGGER_OPTIONS.find(o => o.value === triggerEvent)?.label || ''} />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                            <p className={styles.modalSectionLabel} style={{ marginBottom: 0 }}>{isAdvancedMode ? 'Fluxo Visual de Mensagens' : 'Mensagem da Campanha'}</p>
+                            {isAdvancedMode && (
+                                <button type="button" onClick={() => { setIsAdvancedMode(false); setSteps([steps[0] || createDefaultStep()]); }} style={{ fontSize: '12px', background: 'var(--surface-3)', border: 'none', color: 'var(--text-1)', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer' }}>
+                                    Voltar para Modo Simples (Apaga funil)
+                                </button>
+                            )}
+                        </div>
+
+                        {isAdvancedMode ? (
+                            <FlowBuilder steps={steps} setSteps={setSteps} triggerEvent={TRIGGER_OPTIONS.find(o => o.value === triggerEvent)?.label || ''} />
+                        ) : (
+                            <div style={{ background: 'var(--app-bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '16px', position: 'relative' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                                    <div>
+                                        <label className={styles.label}>Atraso (após {TRIGGER_OPTIONS.find(o => o.value === triggerEvent)?.label})</label>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            <input required type="number" min="0" value={steps[0]?.delayValue ?? 10} onChange={e => updateStep(0, 'delayValue', Number(e.target.value))} style={{ ...inputStyle, width: '60%' }} onFocus={onFocusGlow} onBlur={onBlurGlow} />
+                                            <select value={steps[0]?.delayUnit ?? 'minutes'} onChange={e => updateStep(0, 'delayUnit', e.target.value)} style={{ ...selectStyle, flex: 1, width: 'auto' }}>
+                                                <option value="seconds">Seg</option>
+                                                <option value="minutes">Min</option>
+                                                <option value="hours">Horas</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className={styles.label}>Formato</label>
+                                        <div className={styles.tabGroup}>
+                                            <button type="button" onClick={() => updateStep(0, 'messageType', 'text')} className={`${styles.tab} ${steps[0]?.messageType === 'text' ? styles.tabActive : ''}`} style={{ padding: '0 8px' }}>
+                                                <IconText /> Texto
+                                            </button>
+                                            <button type="button" onClick={() => updateStep(0, 'messageType', 'audio')} className={`${styles.tab} ${steps[0]?.messageType === 'audio' ? styles.tabActive : ''}`} style={{ padding: '0 8px' }}>
+                                                <IconAudio /> Áudio
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {steps[0]?.messageType === 'text' ? (
+                                    <div>
+                                        <label className={styles.label}>Texto da mensagem</label>
+                                        <textarea required rows={3} placeholder="Sua mensagem aqui... Use {{nome}}" value={steps[0]?.textContent ?? ''} onChange={e => updateStep(0, 'textContent', e.target.value)} style={{ ...inputStyle, height: 'auto', padding: '12px 14px', resize: 'vertical' }} onFocus={onFocusGlow} onBlur={onBlurGlow} />
+                                    </div>
+                                ) : (
+                                    <div>
+                                        <label className={styles.label}>URL do áudio</label>
+                                        <input required type="url" placeholder="https://..." value={steps[0]?.mediaUrl ?? ''} onChange={e => updateStep(0, 'mediaUrl', e.target.value)} style={inputStyle} onFocus={onFocusGlow} onBlur={onBlurGlow} />
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {!isAdvancedMode && (
+                            <div style={{ marginTop: '16px', textAlign: 'center' }}>
+                                <button type="button" onClick={() => setIsAdvancedMode(true)} style={{ background: 'var(--accent-bg)', border: '1px solid var(--accent-glow)', color: 'var(--accent)', padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '8px', width: '100%', justifyContent: 'center' }}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                                    Montar fluxo avançado de mensagens
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     <div className={styles.modalFooter} style={{ padding: '24px 0 0' }}>

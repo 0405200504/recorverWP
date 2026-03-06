@@ -2,54 +2,38 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import styles from '../dashboard.module.css';
+import { SettingsClient } from './SettingsClient';
 
 export default async function SettingsPage() {
     const session = await getServerSession(authOptions) as any;
-    const orgId = session?.orgId;
+    if (!session?.user?.id) return <div>Não autenticado.</div>;
 
-    if (!orgId) return <div>Organização não encontrada.</div>;
-
-    const org = await prisma.organization.findUnique({
-        where: { id: orgId },
+    const user = await prisma.user.findUnique({
+        where: { id: session.user.id }
     });
 
-    if (!org) return <div>Organização não encontrada no banco de dados.</div>;
+    if (!user) return <div>Usuário não encontrado no banco de dados.</div>;
 
     return (
         <div>
             <div className={styles.header}>
                 <h1 className={styles.title}>Configurações da Conta</h1>
-                <p className={styles.subtitle}>Detalhes e preferências da sua organização</p>
+                <p className={styles.subtitle}>Detalhes e gerenciamento do seu perfil</p>
             </div>
 
             <div className={styles.grid}>
                 <div className={styles.card}>
-                    <div className={styles.cardTitle}>Nome da Organização</div>
-                    <div className={styles.cardValue} style={{ fontSize: '18px', marginTop: '8px' }}>{org.name}</div>
+                    <div className={styles.cardTitle}>Nome de Usuário</div>
+                    <div className={styles.cardValue} style={{ fontSize: '18px', marginTop: '8px' }}>{user.name || 'Não informado'}</div>
                 </div>
 
                 <div className={styles.card}>
-                    <div className={styles.cardTitle}>Fuso Horário</div>
-                    <div className={styles.cardValue} style={{ fontSize: '18px', marginTop: '8px' }}>{org.timezone}</div>
-                </div>
-
-                <div className={styles.card}>
-                    <div className={styles.cardTitle}>Moeda</div>
-                    <div className={styles.cardValue} style={{ fontSize: '18px', marginTop: '8px' }}>{org.currency}</div>
+                    <div className={styles.cardTitle}>E-mail</div>
+                    <div className={styles.cardValue} style={{ fontSize: '18px', marginTop: '8px' }}>{user.email}</div>
                 </div>
             </div>
 
-            <div className={styles.tableContainer} style={{ marginTop: '24px' }}>
-                <div className={styles.tableHeader}>
-                    <div>
-                        <div className={styles.sectionTitle}>Webhook Secret</div>
-                        <div className={styles.sectionSubtitle}>Chave secreta para validação de webhooks de entrada</div>
-                    </div>
-                </div>
-                <div style={{ padding: '20px', background: 'var(--surface-2)', borderRadius: 'var(--radius-sm)', wordBreak: 'break-all', fontFamily: 'monospace', color: 'var(--text-2)' }}>
-                    {org.webhook_secret}
-                </div>
-            </div>
+            <SettingsClient />
         </div>
     );
 }
