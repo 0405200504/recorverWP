@@ -20,6 +20,13 @@ export default async function DashboardPage() {
 
     const recoveredBRL = (totalRecovered._sum.amount || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
+    const recentEvents = await prisma.orderEvent.findMany({
+        where: { order: { organizationId: orgId } },
+        orderBy: { createdAt: 'desc' },
+        take: 3,
+        include: { order: { select: { lead: { select: { name: true, phoneE164: true } }, provider: true } } }
+    });
+
     return (
         <div>
             <div className={styles.header}>
@@ -96,17 +103,49 @@ export default async function DashboardPage() {
                 <div className={styles.tableHeader}>
                     <div>
                         <div className={styles.sectionTitle}>Atividade Recente</div>
-                        <div className={styles.sectionSubtitle}>Acesse as abas específicas para relatórios detalhados</div>
+                        <div className={styles.sectionSubtitle}>Últimos 3 eventos registrados</div>
                     </div>
                 </div>
-                <div className={styles.emptyState}>
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 12px', color: 'var(--border-3)', display: 'block' }}>
-                        <path d="M12 20h9" />
-                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-                    </svg>
-                    <div className={styles.emptyStateTitle}>Nenhuma atividade recente</div>
-                    <div className={styles.emptyStateDesc}>Configure uma campanha e integre seu checkout para ver os eventos aqui.</div>
-                </div>
+                {recentEvents.length === 0 ? (
+                    <div className={styles.emptyState}>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 12px', color: 'var(--border-3)', display: 'block' }}>
+                            <path d="M12 20h9" />
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                        </svg>
+                        <div className={styles.emptyStateTitle}>Nenhuma atividade recente</div>
+                        <div className={styles.emptyStateDesc}>Configure uma campanha e integre seu checkout para ver os eventos aqui.</div>
+                    </div>
+                ) : (
+                    <div style={{ padding: '20px' }}>
+                        {recentEvents.map(ev => (
+                            <div key={ev.id} style={{ display: 'flex', gap: '16px', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
+                                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--surface-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-2)' }}>
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                        <polyline points="14 2 14 8 20 8" />
+                                        <line x1="16" y1="13" x2="8" y2="13" />
+                                        <line x1="16" y1="17" x2="8" y2="17" />
+                                        <polyline points="10 9 9 9 8 9" />
+                                    </svg>
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                                        <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-1)' }}>{ev.eventType}</span>
+                                        <span style={{ fontSize: '11px', background: 'var(--surface-3)', padding: '2px 8px', borderRadius: '10px', color: 'var(--text-2)' }}>
+                                            {ev.order.provider}
+                                        </span>
+                                    </div>
+                                    <div style={{ fontSize: '13px', color: 'var(--text-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        Lead: {ev.order.lead.name || ev.order.lead.phoneE164}
+                                    </div>
+                                </div>
+                                <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>
+                                    {new Date(ev.createdAt).toLocaleString('pt-BR')}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );

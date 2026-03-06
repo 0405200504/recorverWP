@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from '../dashboard.module.css';
 import { addCampaign, deleteCampaign, updateCampaign, CampaignStep } from '../actions';
+import { FlowBuilder } from '@/components/FlowBuilder';
 
 const TRIGGER_OPTIONS = [
     { value: 'pix_generated', label: 'Pix Gerado', desc: 'Dispara quando o Pix é gerado mas não pago' },
@@ -163,64 +164,8 @@ export function AddCampaignButton() {
                     <div className={styles.modalDivider} />
 
                     <div className={styles.modalSection}>
-                        <p className={styles.modalSectionLabel}>Fluxo de Mensagens ({steps.length})</p>
-
-                        {steps.map((step, index) => (
-                            <div key={index} style={{ background: 'var(--app-bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '16px', marginBottom: '16px', position: 'relative' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                    <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <div style={{ width: '20px', height: '20px', borderRadius: '4px', background: 'var(--surface-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>{index + 1}</div>
-                                        <span>Mensagem #{index + 1}</span>
-                                    </div>
-                                    {steps.length > 1 && (
-                                        <button type="button" onClick={() => removeStep(index)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}>
-                                            <IconTrash />
-                                        </button>
-                                    )}
-                                </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                                    <div>
-                                        <label className={styles.label}>Atraso (após evento)</label>
-                                        <div style={{ display: 'flex', gap: '8px' }}>
-                                            <input required type="number" min="0" value={step.delayValue} onChange={e => updateStep(index, 'delayValue', Number(e.target.value))} style={{ ...inputStyle, width: '60%' }} onFocus={onFocusGlow} onBlur={onBlurGlow} />
-                                            <select value={step.delayUnit} onChange={e => updateStep(index, 'delayUnit', e.target.value)} style={{ ...selectStyle, flex: 1, width: 'auto' }}>
-                                                <option value="seconds">Seg</option>
-                                                <option value="minutes">Min</option>
-                                                <option value="hours">Horas</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className={styles.label}>Formato</label>
-                                        <div className={styles.tabGroup}>
-                                            <button type="button" onClick={() => updateStep(index, 'messageType', 'text')} className={`${styles.tab} ${step.messageType === 'text' ? styles.tabActive : ''}`} style={{ padding: '0 8px' }}>
-                                                <IconText /> Texto
-                                            </button>
-                                            <button type="button" onClick={() => updateStep(index, 'messageType', 'audio')} className={`${styles.tab} ${step.messageType === 'audio' ? styles.tabActive : ''}`} style={{ padding: '0 8px' }}>
-                                                <IconAudio /> Áudio
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {step.messageType === 'text' ? (
-                                    <div>
-                                        <label className={styles.label}>Texto da mensagem</label>
-                                        <textarea required rows={3} placeholder="Sua mensagem aqui... Use {{nome}}" value={step.textContent} onChange={e => updateStep(index, 'textContent', e.target.value)} style={{ ...inputStyle, height: 'auto', padding: '12px 14px', resize: 'vertical' }} onFocus={onFocusGlow} onBlur={onBlurGlow} />
-                                    </div>
-                                ) : (
-                                    <div>
-                                        <label className={styles.label}>URL do áudio</label>
-                                        <input required type="url" placeholder="https://..." value={step.mediaUrl} onChange={e => updateStep(index, 'mediaUrl', e.target.value)} style={inputStyle} onFocus={onFocusGlow} onBlur={onBlurGlow} />
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-
-                        <button type="button" onClick={addStep} style={{ width: '100%', padding: '12px', background: 'var(--surface-2)', border: '1px dashed var(--border-3)', borderRadius: 'var(--radius-md)', color: 'var(--text-2)', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                            <IconPlus /> Adicionar próxima mensagem do funil
-                        </button>
+                        <p className={styles.modalSectionLabel}>Fluxo Visual de Mensagens</p>
+                        <FlowBuilder steps={steps} setSteps={setSteps} triggerEvent={TRIGGER_OPTIONS.find(o => o.value === triggerEvent)?.label || ''} />
                     </div>
 
                     <div className={styles.modalFooter} style={{ padding: '24px 0 0' }}>
@@ -336,64 +281,8 @@ export function EditCampaignButton({ id, name: initialName, triggerEvent: initia
                     <div className={styles.modalDivider} />
 
                     <div className={styles.modalSection}>
-                        <p className={styles.modalSectionLabel}>Fluxo de Mensagens ({steps.length})</p>
-
-                        {steps.map((step, index) => (
-                            <div key={index} style={{ background: 'var(--app-bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '16px', marginBottom: '16px', position: 'relative' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                    <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-3)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <div style={{ width: '20px', height: '20px', borderRadius: '4px', background: 'var(--surface-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>{index + 1}</div>
-                                        <span>Mensagem #{index + 1}</span>
-                                    </div>
-                                    {steps.length > 1 && (
-                                        <button type="button" onClick={() => removeStep(index)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}>
-                                            <IconTrash />
-                                        </button>
-                                    )}
-                                </div>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                                    <div>
-                                        <label className={styles.label}>Atraso (após evento)</label>
-                                        <div style={{ display: 'flex', gap: '8px' }}>
-                                            <input required type="number" min="0" value={step.delayValue} onChange={e => updateStep(index, 'delayValue', Number(e.target.value))} style={{ ...inputStyle, width: '60%' }} onFocus={onFocusGlow} onBlur={onBlurGlow} />
-                                            <select value={step.delayUnit} onChange={e => updateStep(index, 'delayUnit', e.target.value)} style={{ ...selectStyle, flex: 1, width: 'auto' }}>
-                                                <option value="seconds">Seg</option>
-                                                <option value="minutes">Min</option>
-                                                <option value="hours">Horas</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className={styles.label}>Formato</label>
-                                        <div className={styles.tabGroup}>
-                                            <button type="button" onClick={() => updateStep(index, 'messageType', 'text')} className={`${styles.tab} ${step.messageType === 'text' ? styles.tabActive : ''}`} style={{ padding: '0 8px' }}>
-                                                <IconText /> Texto
-                                            </button>
-                                            <button type="button" onClick={() => updateStep(index, 'messageType', 'audio')} className={`${styles.tab} ${step.messageType === 'audio' ? styles.tabActive : ''}`} style={{ padding: '0 8px' }}>
-                                                <IconAudio /> Áudio
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {step.messageType === 'text' ? (
-                                    <div>
-                                        <label className={styles.label}>Texto da mensagem</label>
-                                        <textarea required rows={3} placeholder="Sua mensagem aqui..." value={step.textContent} onChange={e => updateStep(index, 'textContent', e.target.value)} style={{ ...inputStyle, height: 'auto', padding: '12px 14px', resize: 'vertical' }} onFocus={onFocusGlow} onBlur={onBlurGlow} />
-                                    </div>
-                                ) : (
-                                    <div>
-                                        <label className={styles.label}>URL do áudio</label>
-                                        <input required type="url" placeholder="https://..." value={step.mediaUrl} onChange={e => updateStep(index, 'mediaUrl', e.target.value)} style={inputStyle} onFocus={onFocusGlow} onBlur={onBlurGlow} />
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-
-                        <button type="button" onClick={addStep} style={{ width: '100%', padding: '12px', background: 'var(--surface-2)', border: '1px dashed var(--border-3)', borderRadius: 'var(--radius-md)', color: 'var(--text-2)', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                            <IconPlus /> Adicionar próxima mensagem
-                        </button>
+                        <p className={styles.modalSectionLabel}>Fluxo Visual de Mensagens</p>
+                        <FlowBuilder steps={steps} setSteps={setSteps} triggerEvent={TRIGGER_OPTIONS.find(o => o.value === triggerEvent)?.label || ''} />
                     </div>
 
                     <div className={styles.modalFooter} style={{ padding: '24px 0 0' }}>

@@ -1,0 +1,35 @@
+.toggleBtn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 10px 14px;
+    background: transparent;
+    border: 1px solid var(--border-2);
+    border-radius: var(--radius-sm);
+    color: var(--text-2);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: 12px;
+}
+
+.toggleBtn:hover {
+    background: var(--surface-2);
+    color: var(--text-1);
+    border-color: var(--border-3);
+}
+
+.toggleText {
+    white-space: nowrap;
+}
+
+.togglePlaceholder {
+    width: 100%;
+    height: 38px;
+    margin-bottom: 12px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-2);
+    opacity: 0.5;
+}

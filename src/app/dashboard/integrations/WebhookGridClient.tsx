@@ -121,8 +121,8 @@ export function WebhookGridClient({ configs, orgId }: { configs: any[], orgId: s
                                 fontWeight: '500',
                                 transition: 'all 0.2s ease',
                             }}
-                            onMouseOver={(e) => { e.currentTarget.style.borderColor = '#38bdf8'; e.currentTarget.style.color = '#fff' }}
-                            onMouseOut={(e) => { e.currentTarget.style.borderColor = '#3f3f46'; e.currentTarget.style.color = '#e4e4e7' }}
+                            onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)' }}
+                            onMouseOut={(e) => { e.currentTarget.style.borderColor = 'var(--border-3)'; e.currentTarget.style.color = 'var(--text-1)' }}
                         >
                             {p.name}
                         </button>
@@ -134,31 +134,30 @@ export function WebhookGridClient({ configs, orgId }: { configs: any[], orgId: s
             {selectedProvider && (
                 <div style={{ background: '#111111', padding: '24px', borderRadius: '12px', border: '1px solid #27272a', marginBottom: '24px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                        <h4 style={{ margin: 0, color: '#fff', fontSize: '16px' }}>Configurar: <span style={{ color: '#38bdf8' }}>{PROVIDERS.find(p => p.id === selectedProvider)?.name}</span></h4>
-                        <button onClick={() => { setSelectedProvider(null); setDetectedProvider(null); setCheckoutUrl(''); }} style={{ background: 'none', border: 'none', color: '#a1a1aa', cursor: 'pointer', fontSize: '20px' }}>&times;</button>
+                        <h4 style={{ margin: 0, color: '#fff', fontSize: '16px' }}>Configurar: <span style={{ color: 'var(--accent)' }}>{PROVIDERS.find(p => p.id === selectedProvider)?.name}</span></h4>
+                        <button onClick={() => { setSelectedProvider(null); setDetectedProvider(null); setCheckoutUrl(''); }} style={{ background: 'none', border: 'none', color: 'var(--text-2)', cursor: 'pointer', fontSize: '20px' }}>&times;</button>
                     </div>
 
                     {selectedProvider === 'custom' && (
-                        <div style={{ marginBottom: '24px', padding: '16px', borderRadius: '12px', background: '#0f172a', border: '1px solid #38bdf840' }}>
-                            <p style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#94a3b8' }}>✨ <strong>Dica Mágica:</strong> Cole a URL do seu produto para identificarmos o checkout automaticamente.</p>
+                        <div style={{ marginBottom: '24px', padding: '16px', borderRadius: '12px', background: 'var(--surface-2)', border: '1px solid var(--accent-glow)' }}>
+                            <p style={{ margin: '0 0 10px 0', fontSize: '13px', color: 'var(--text-2)' }}>✨ <strong>Dica Mágica:</strong> Cole a URL do seu produto para identificarmos o checkout automaticamente.</p>
                             <input
                                 placeholder="https://pay.cakto.com.br/seu-produto"
                                 className={styles.input}
                                 value={checkoutUrl}
                                 onChange={(e) => detectProvider(e.target.value)}
-                                style={{ background: '#020617' }}
                             />
 
                             {detectedProvider && (
-                                <div style={{ marginTop: '16px', padding: '12px', background: '#07598530', borderRadius: '8px', border: '1px solid #0ea5e950' }}>
-                                    <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#fff' }}>✅ Plataforma: <strong>{detectedProvider.name}</strong></p>
-                                    <div style={{ background: '#0f172a', padding: '10px', borderRadius: '6px', border: '1px dashed #1e293b' }}>
-                                        <p style={{ margin: '0 0 4px 0', fontSize: '11px', color: '#94a3b8' }}>USE ESTA URL NO SEU CHECKOUT:</p>
+                                <div style={{ marginTop: '16px', padding: '12px', background: 'var(--accent-bg)', borderRadius: '8px', border: '1px solid var(--accent-glow)' }}>
+                                    <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: 'var(--text-1)' }}>✅ Plataforma: <strong>{detectedProvider.name}</strong></p>
+                                    <div style={{ background: 'var(--surface-1)', padding: '10px', borderRadius: '6px', border: '1px dashed var(--border-3)' }}>
+                                        <p style={{ margin: '0 0 4px 0', fontSize: '11px', color: 'var(--text-3)' }}>USE ESTA URL NO SEU CHECKOUT:</p>
                                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                            <code style={{ flex: 1, fontSize: '12px', color: '#38bdf8', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                            <code style={{ flex: 1, fontSize: '12px', color: 'var(--accent)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                                 {baseUrl}/api/webhooks/checkout/{detectedProvider.id}?orgId={orgId}
                                             </code>
-                                            <button type="button" onClick={() => copyToClipboard(`${baseUrl}/api/webhooks/checkout/${detectedProvider.id}?orgId=${orgId}`)} style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>COPIAR</button>
+                                            <button type="button" onClick={() => copyToClipboard(`${baseUrl}/api/webhooks/checkout/${detectedProvider.id}?orgId=${orgId}`)} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>COPIAR</button>
                                         </div>
                                     </div>
                                 </div>
@@ -190,7 +189,7 @@ export function WebhookGridClient({ configs, orgId }: { configs: any[], orgId: s
                         )}
 
                         <div style={{ marginTop: '8px' }}>
-                            <button type="submit" className={styles.btnPrimary} style={{ width: '100%', padding: '12px', background: '#2563eb', color: '#fff', fontWeight: '600' }} disabled={loading}>
+                            <button type="submit" className={styles.btnPrimary} style={{ width: '100%', padding: '12px', justifyContent: 'center' }} disabled={loading}>
                                 {loading ? 'Carregando...' : 'Salvar Configuração'}
                             </button>
                         </div>
@@ -205,12 +204,12 @@ export function WebhookGridClient({ configs, orgId }: { configs: any[], orgId: s
                     {configs.map(cfg => (
                         <div key={cfg.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#18181b', padding: '16px', borderRadius: '12px', border: '1px solid #27272a', marginBottom: '12px' }}>
                             <div>
-                                <h5 style={{ margin: '0 0 4px 0', color: '#fff', fontSize: '15px' }}>{cfg.name} <span style={{ fontSize: '12px', color: '#38bdf8', background: '#082f49', padding: '2px 6px', borderRadius: '4px', marginLeft: '8px' }}>{cfg.provider.toUpperCase()}</span></h5>
-                                <p style={{ margin: 0, fontSize: '13px', color: '#a1a1aa', wordBreak: 'break-all', paddingRight: '16px' }}><strong>URL:</strong> {baseUrl}/api/webhooks/checkout/{cfg.provider}?orgId={orgId}</p>
+                                <h5 style={{ margin: '0 0 4px 0', color: 'var(--text-1)', fontSize: '15px' }}>{cfg.name} <span style={{ fontSize: '12px', color: 'var(--accent)', background: 'var(--accent-bg)', padding: '2px 6px', borderRadius: '4px', marginLeft: '8px' }}>{cfg.provider.toUpperCase()}</span></h5>
+                                <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-2)', wordBreak: 'break-all', paddingRight: '16px' }}><strong>URL:</strong> {baseUrl}/api/webhooks/checkout/{cfg.provider}?orgId={orgId}</p>
                             </div>
                             <div style={{ display: 'flex', gap: '8px' }}>
-                                <button onClick={() => copyToClipboard(`${baseUrl}/api/webhooks/checkout/${cfg.provider}?orgId=${orgId}`)} style={{ background: '#38bdf820', color: '#38bdf8', border: '1px solid #38bdf850', padding: '6px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', whiteSpace: 'nowrap' }}>Copiar URL</button>
-                                <button onClick={() => handleDelete(cfg.id)} disabled={loading} style={{ background: '#ef444420', color: '#ef4444', border: '1px solid #ef444450', padding: '6px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>Excluir</button>
+                                <button onClick={() => copyToClipboard(`${baseUrl}/api/webhooks/checkout/${cfg.provider}?orgId=${orgId}`)} style={{ background: 'var(--accent-bg)', color: 'var(--accent-hi)', border: '1px solid var(--accent-glow)', padding: '6px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', whiteSpace: 'nowrap' }}>Copiar URL</button>
+                                <button onClick={() => handleDelete(cfg.id)} disabled={loading} style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', border: '1px solid rgba(239, 68, 68, 0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>Excluir</button>
                             </div>
                         </div>
                     ))}
