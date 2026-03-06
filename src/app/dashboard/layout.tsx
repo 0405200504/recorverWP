@@ -1,9 +1,72 @@
+'use server';
 import { getServerSession } from "next-auth/next";
 import { redirect } from 'next/navigation';
 import { authOptions } from "@/lib/auth";
 import styles from './layout.module.css';
 import Link from 'next/link';
 import { LogoutButton } from './LogoutButton';
+
+const NAV_ITEMS = [
+    {
+        href: '/dashboard',
+        label: 'Visão Geral',
+        icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="7" height="7" rx="1" />
+                <rect x="14" y="3" width="7" height="7" rx="1" />
+                <rect x="3" y="14" width="7" height="7" rx="1" />
+                <rect x="14" y="14" width="7" height="7" rx="1" />
+            </svg>
+        ),
+    },
+    {
+        href: '/dashboard/leads',
+        label: 'Leads',
+        icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+        ),
+    },
+    {
+        href: '/dashboard/campaigns',
+        label: 'Campanhas',
+        icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m22 2-7 20-4-9-9-4Z" />
+                <path d="M22 2 11 13" />
+            </svg>
+        ),
+    },
+    {
+        href: '/dashboard/runs',
+        label: 'Recuperações',
+        icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                <path d="M21 3v5h-5" />
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                <path d="M3 21v-5h5" />
+            </svg>
+        ),
+    },
+    {
+        href: '/dashboard/integrations',
+        label: 'Integrações',
+        icon: (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 6h16" />
+                <path d="M4 12h16" />
+                <path d="M4 18h16" />
+                <circle cx="20" cy="6" r="2" fill="currentColor" stroke="none" />
+                <circle cx="20" cy="18" r="2" fill="currentColor" stroke="none" />
+            </svg>
+        ),
+    },
+];
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
     const session = await getServerSession(authOptions);
@@ -16,25 +79,36 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <div className={styles.container}>
             <aside className={styles.sidebar}>
                 <div className={styles.brand}>
-                    <div className={styles.logoDots}>
-                        <span className={styles.dot}></span>
-                        <span className={styles.dot}></span>
-                        <span className={styles.dot}></span>
-                        <span className={styles.dot}></span>
+                    <div className={styles.logoMark}>
+                        <span className={styles.dot} />
+                        <span className={styles.dot} />
+                        <span className={styles.dot} />
+                        <span className={styles.dot} />
                     </div>
-                    <span className={styles.brandName}>RecoverWP</span>
+                    <div className={styles.brandText}>
+                        <span className={styles.brandName}>RecoverWP</span>
+                        <span className={styles.brandTagline}>Recovery Engine</span>
+                    </div>
                 </div>
-                <nav className={styles.nav}>
-                    <li><Link href="/dashboard" className={styles.navLink}>Visão Geral</Link></li>
-                    <li><Link href="/dashboard/leads" className={styles.navLink}>Leads</Link></li>
-                    <li><Link href="/dashboard/campaigns" className={styles.navLink}>Campanhas</Link></li>
-                    <li><Link href="/dashboard/runs" className={styles.navLink}>Recuperações</Link></li>
-                    <li><Link href="/dashboard/integrations" className={styles.navLink}>Integrações</Link></li>
+
+                <nav>
+                    <ul className={styles.nav}>
+                        {NAV_ITEMS.map((item) => (
+                            <li key={item.href} className={styles.navItem}>
+                                <Link href={item.href} className={styles.navLink}>
+                                    <span className={styles.navIcon}>{item.icon}</span>
+                                    {item.label}
+                                </Link>
+                            </li>
+                        ))}
+                    </ul>
                 </nav>
-                <div style={{ marginTop: 'auto', paddingTop: '20px', borderTop: '1px solid #27272a' }}>
+
+                <div className={styles.sidebarFooter}>
                     <LogoutButton />
                 </div>
             </aside>
+
             <main className={styles.main}>
                 {children}
             </main>

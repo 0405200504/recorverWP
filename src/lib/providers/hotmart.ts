@@ -29,13 +29,13 @@ export const hotmartAdapter: WebhookProviderAdapter = {
                 // Aqui vamos considerar como PIX pendente se vier info de pix
                 eventType = 'pix_generated';
                 status = 'pending';
-            } else if (event === 'ABANDONED_CART') {
-                eventType = 'checkout_abandoned';
+            } else if (event === 'ABANDONED_CART' || event === 'PURCHASE_STARTED') {
+                eventType = event === 'PURCHASE_STARTED' ? 'checkout_started' : 'checkout_abandoned';
                 status = 'started';
             } else if (event === 'PURCHASE_DELAYED' || event === 'PURCHASE_PROTEST') {
                 eventType = 'payment_failed';
                 status = 'failed';
-            } else if (event === 'PURCHASE_REFUNDED') {
+            } else if (event === 'PURCHASE_REFUNDED' || event === 'CHARGEBACK') {
                 eventType = 'refund';
                 status = 'refunded';
             }

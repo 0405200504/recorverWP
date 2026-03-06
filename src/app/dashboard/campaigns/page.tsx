@@ -18,61 +18,47 @@ export default async function CampaignsPage() {
 
     return (
         <div>
-            {/* INSTRUCTION BANNER */}
-            <div style={{ backgroundColor: '#0a0a0a', border: '1px solid #27272a', padding: '16px', borderRadius: '12px', marginBottom: '24px' }}>
-                <h3 style={{ color: '#ffffff', margin: '0 0 8px 0', fontSize: '15px', fontWeight: '600' }}>
-                    Estratégia de Campanhas
-                </h3>
-                <p style={{ color: '#a1a1aa', fontSize: '14px', margin: 0, lineHeight: '1.5' }}>
-                    Defina as regras de negócio para recuperação. Crie campanhas vinculadas a gatilhos e eventos específicos recebidos pelo checkout. O disparo de mensagens será interrompido automaticamente e imediatamente em caso de detecção de conversão de pagamento aprovado.
-                </p>
-            </div>
-
-            <div className={styles.header} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div className={styles.header} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px' }}>
                 <div>
                     <h1 className={styles.title}>Campanhas</h1>
-                    <p className={styles.subtitle}>Crie e gerencie sua esteira de automações 1:1 de mensagens</p>
+                    <p className={styles.subtitle}>Crie e gerencie automações de mensagens para cada etapa do funil</p>
                 </div>
+                <AddCampaignButton />
             </div>
-
-            <AddCampaignButton />
 
             <div className={styles.tableContainer}>
                 <table className={styles.table}>
                     <thead>
                         <tr>
-                            <th className={styles.th}>Nome da Campanha</th>
-                            <th className={styles.th}>Gatilhos (Eventos)</th>
+                            <th className={styles.th}>Campanha</th>
+                            <th className={styles.th}>Gatilho</th>
                             <th className={styles.th}>Status</th>
-                            <th className={styles.th}>Recuperações Ativas</th>
+                            <th className={styles.th}>Ativações</th>
                             <th className={styles.th}>Ações</th>
                         </tr>
                     </thead>
                     <tbody>
                         {campaigns.map(camp => (
                             <tr key={camp.id} className={styles.tr}>
-                                <td className={styles.td}><strong>{camp.name}</strong></td>
+                                <td className={styles.td} style={{ color: '#fff', fontWeight: 500 }}>{camp.name}</td>
                                 <td className={styles.td}>
-                                    <code style={{ background: '#18181b', padding: '2px 6px', borderRadius: '4px', fontSize: '12px', color: '#38bdf8', border: '1px solid #27272a' }}>
+                                    <span className={styles.codeTag}>
                                         {camp.triggerEventTypes}
-                                    </code>
+                                    </span>
                                 </td>
                                 <td className={styles.td}>
                                     <span className={`${styles.statusBadge} ${camp.active ? styles.statusActive : styles.statusInactive}`}>
                                         {camp.active ? 'Ativa' : 'Pausada'}
                                     </span>
                                 </td>
-                                <td className={styles.td}>{camp._count.runs} funis acionados</td>
+                                <td className={styles.td}>{camp._count.runs} ativações</td>
                                 <td className={styles.td}>
                                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                         <EditCampaignButton
                                             id={camp.id}
                                             name={camp.name}
                                             triggerEvent={JSON.parse(camp.triggerEventTypes)[0] || 'pix_generated'}
-                                            delaySeconds={camp.steps[0]?.delaySeconds || (camp.steps[0]?.delayMinutes ? camp.steps[0]?.delayMinutes * 60 : 0)}
-                                            messageType={camp.steps[0]?.messageType || 'text'}
-                                            textContent={camp.steps[0]?.contentText || ''}
-                                            mediaUrl={camp.steps[0]?.mediaUrl || ''}
+                                            steps={camp.steps}
                                         />
                                         <DeleteCampaignButton id={camp.id} />
                                     </div>
@@ -81,7 +67,15 @@ export default async function CampaignsPage() {
                         ))}
                         {campaigns.length === 0 && (
                             <tr>
-                                <td colSpan={5} className={styles.td} style={{ textAlign: 'center' }}>Nenhuma campanha encontrada</td>
+                                <td colSpan={5}>
+                                    <div className={styles.emptyState}>
+                                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 12px', color: 'var(--border-3)', display: 'block' }}>
+                                            <path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" />
+                                        </svg>
+                                        <div className={styles.emptyStateTitle}>Nenhuma campanha criada</div>
+                                        <div className={styles.emptyStateDesc}>Crie sua primeira campanha para começar a recuperar vendas automaticamente.</div>
+                                    </div>
+                                </td>
                             </tr>
                         )}
                     </tbody>

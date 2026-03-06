@@ -9,6 +9,19 @@ import { EventFeed } from './EventFeed';
 import { WhatsAppStatusBadge } from './WhatsAppStatusBadge';
 import { TriggerSchedulerButton } from './TriggerSchedulerButton';
 
+const IconWebhook = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+    </svg>
+);
+
+const IconPhone = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+        <line x1="12" y1="18" x2="12.01" y2="18" />
+    </svg>
+);
 
 export default async function IntegrationsPage() {
     const session = await getServerSession(authOptions) as any;
@@ -23,57 +36,86 @@ export default async function IntegrationsPage() {
 
     if (!org) return <div>Organização não encontrada.</div>;
 
-
-
     return (
         <div>
-            {/* INSTRUCTION BANNER */}
-            <div style={{ backgroundColor: '#0a0a0a', border: '1px solid #27272a', padding: '16px', borderRadius: '12px', marginBottom: '24px' }}>
-                <h3 style={{ color: '#ffffff', margin: '0 0 8px 0', fontSize: '15px', fontWeight: '600' }}>
-                    Configuração de Integrações
-                </h3>
-                <p style={{ color: '#a1a1aa', fontSize: '14px', margin: 0, lineHeight: '1.5' }}>
-                    Para habilitar o envio automático de mensagens, conecte seu aparelho através de um <strong>QR Code</strong> abaixo. Aproveite nossa tecnologia Anti-Ban ativada por padrão. Em seguida, cadastre o <strong>Webhook</strong> do nosso sistema na sua plataforma de checkout.
-                </p>
+            <div className={styles.header}>
+                <h1 className={styles.title}>Integrações</h1>
+                <p className={styles.subtitle}>Configure canais de entrada (webhooks) e saída (WhatsApp) da sua operação</p>
             </div>
 
-            {/* FEED DE EVENTOS EM TEMPO REAL */}
+            {/* Feed de eventos em tempo real */}
             <EventFeed />
 
-
-            <div className={styles.header}>
-                <h1 className={styles.title}>Integrações e Webhooks</h1>
-                <p className={styles.subtitle}>Configure os recebimentos de checkout e números ativos de WhatsApp</p>
-            </div>
-
             <div className={styles.grid}>
+                {/* Card Webhooks */}
                 <div className={styles.card}>
-                    <h2 className={styles.title} style={{ fontSize: '18px', marginBottom: '16px' }}>🔗 Webhooks & Plataformas</h2>
-                    <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '24px' }}>Selecione a plataforma para configurar seu webhook de recebimento de eventos:</p>
+                    <div className={styles.sectionHeader} style={{ marginBottom: '16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div className={styles.cardIconWrapper} style={{ margin: 0 }}>
+                                <IconWebhook />
+                            </div>
+                            <div>
+                                <div className={styles.sectionTitle}>Webhooks & Plataformas</div>
+                                <div className={styles.sectionSubtitle}>Endpoints de recebimento de eventos</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p style={{ fontSize: '13px', color: 'var(--text-2)', marginBottom: '20px', lineHeight: 1.6 }}>
+                        Selecione a plataforma para configurar o webhook de recebimento de eventos:
+                    </p>
 
                     <WebhookGridClient configs={org.webhookConfigs} orgId={orgId} />
 
-                    <div style={{ marginTop: '32px', borderTop: '1px solid #27272a', paddingTop: '24px' }}>
-                        <p style={{ fontSize: '14px' }}><strong>Webhook Secret Master (para Custom Auth via HMAC):</strong></p>
+                    <div style={{ marginTop: '28px', borderTop: '1px solid var(--border)', paddingTop: '20px' }}>
+                        <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px' }}>
+                            Webhook Secret Master
+                        </p>
+                        <p style={{ fontSize: '13px', color: 'var(--text-2)', marginBottom: '12px', lineHeight: 1.5 }}>
+                            Usado para autenticação personalizada via HMAC em integrações avançadas.
+                        </p>
                         <EditWebhookSecretButton currentSecret={org.webhook_secret} />
                     </div>
                 </div>
 
+                {/* Card WhatsApp */}
                 <div className={styles.card}>
-                    <h2 className={styles.title} style={{ fontSize: '18px', marginBottom: '16px' }}>📱 Aparelhos Conectados (WhatsApp)</h2>
-                    {org.whatsappNumbers.map((wn: any) => (
-                        <div key={wn.id} style={{ border: '1px solid #27272a', background: '#18181b', padding: '16px', borderRadius: '12px', marginBottom: '16px', position: 'relative' }}>
-                            <div style={{ position: 'absolute', top: '16px', right: '16px' }}>
-                                <DeleteWhatsAppButton id={wn.id} />
+                    <div className={styles.sectionHeader} style={{ marginBottom: '16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div className={styles.cardIconWrapper} style={{ margin: 0 }}>
+                                <IconPhone />
                             </div>
-                            <p style={{ margin: '0 0 6px 0', fontWeight: '600', color: '#ffffff', fontSize: 15 }}>📱 {wn.displayName}</p>
-                            <p style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#71717a' }}>Sessão: {wn.phoneNumberId}</p>
-                            <WhatsAppStatusBadge instanceName={wn.phoneNumberId} />
+                            <div>
+                                <div className={styles.sectionTitle}>Aparelhos Conectados</div>
+                                <div className={styles.sectionSubtitle}>Números de WhatsApp ativos</div>
+                            </div>
                         </div>
-                    ))}
-                    {org.whatsappNumbers.length === 0 && <p style={{ fontSize: '14px', color: '#a1a1aa' }}>Nenhum número configurado para enviar mensagens.</p>}
-                    <AddWhatsAppButton />
-                    <TriggerSchedulerButton />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+                        {org.whatsappNumbers.map((wn: any) => (
+                            <div key={wn.id} className={styles.deviceCard}>
+                                <div style={{ position: 'absolute', top: '12px', right: '12px' }}>
+                                    <DeleteWhatsAppButton id={wn.id} />
+                                </div>
+                                <div className={styles.deviceName}>{wn.displayName}</div>
+                                <div className={styles.deviceId}>{wn.phoneNumberId}</div>
+                                <div style={{ marginTop: '10px' }}>
+                                    <WhatsAppStatusBadge instanceName={wn.phoneNumberId} />
+                                </div>
+                            </div>
+                        ))}
+                        {org.whatsappNumbers.length === 0 && (
+                            <p style={{ fontSize: '13px', color: 'var(--text-3)', lineHeight: 1.6 }}>
+                                Nenhum aparelho configurado. Conecte um número para começar a enviar mensagens.
+                            </p>
+                        )}
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <AddWhatsAppButton />
+                        <TriggerSchedulerButton />
+                    </div>
                 </div>
             </div>
         </div>

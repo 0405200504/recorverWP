@@ -1,13 +1,10 @@
 'use client';
 import { signIn } from 'next-auth/react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import styles from './page.module.css';
-import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
-    const router = useRouter();
     const [isLogin, setIsLogin] = useState(true);
-
     const [name, setName] = useState('');
     const [companyName, setCompanyName] = useState('');
     const [email, setEmail] = useState('');
@@ -25,29 +22,25 @@ export default function LoginPage() {
         if (isLogin) {
             try {
                 const res = await signIn('credentials', {
-                    email,
-                    password,
+                    email, password,
                     redirect: false,
                     callbackUrl: '/dashboard'
                 });
 
                 if (res?.error) {
-                    setError('Credenciais inválidas. Tente novamente.');
+                    setError('Credenciais inválidas. Verifique seu e-mail e senha.');
                     setLoading(false);
                 } else if (res?.ok) {
-                    // Redirecionamento robusto
                     window.location.href = res.url || '/dashboard';
                 } else {
-                    // Fallback para caso raro de res ser indefinido
-                    setError('Erro inesperado ao tentar entrar.');
+                    setError('Erro inesperado ao autenticar. Tente novamente.');
                     setLoading(false);
                 }
-            } catch (err) {
+            } catch {
                 setError('Erro de conexão. Tente novamente.');
                 setLoading(false);
             }
         } else {
-            // Executa cadastro
             try {
                 const response = await fetch('/api/auth/register', {
                     method: 'POST',
@@ -60,9 +53,7 @@ export default function LoginPage() {
                     throw new Error(errMsg || 'Falha ao criar conta.');
                 }
 
-                setSuccessMsg('Conta criada com sucesso! Faça seu login.');
-
-                // Volta para login e preenche os ultimos dados
+                setSuccessMsg('Conta criada com sucesso. Faça seu login para continuar.');
                 setIsLogin(true);
                 setPassword('');
             } catch (err: any) {
@@ -73,28 +64,43 @@ export default function LoginPage() {
         }
     };
 
+    const switchMode = (toLogin: boolean) => {
+        setIsLogin(toLogin);
+        setError('');
+        setSuccessMsg('');
+    };
+
     return (
         <div className={styles.container}>
             <div className={styles.card}>
+                {/* Logo */}
                 <div className={styles.logoMark}>
                     <div className={styles.logoDots}>
-                        <span className={styles.dot}></span>
-                        <span className={styles.dot}></span>
-                        <span className={styles.dot}></span>
-                        <span className={styles.dot}></span>
+                        <span className={styles.dot} />
+                        <span className={styles.dot} />
+                        <span className={styles.dot} />
+                        <span className={styles.dot} />
                     </div>
+                    <span className={styles.logoName}>RecoverWP</span>
                 </div>
-                <h1 className={styles.title}>{isLogin ? 'Acesso à Plataforma' : 'Criar sua Conta'}</h1>
-                <p className={styles.subtitle}>{isLogin ? 'Autenticação segura para gestão de campanhas.' : 'Cadastre sua empresa e impulsione suas conversões.'}</p>
 
-                {error && <p style={{ color: '#ef4444', fontSize: '14px', marginBottom: '15px' }}>{error}</p>}
-                {successMsg && <p style={{ color: '#a3e635', fontSize: '14px', marginBottom: '15px' }}>{successMsg}</p>}
+                <h1 className={styles.title}>
+                    {isLogin ? 'Acesso à plataforma' : 'Criar sua conta'}
+                </h1>
+                <p className={styles.subtitle}>
+                    {isLogin
+                        ? 'Entre com suas credenciais para gerenciar suas campanhas.'
+                        : 'Cadastre sua empresa e comece a recuperar vendas automaticamente.'}
+                </p>
+
+                {error && <p className={styles.errorMsg}>{error}</p>}
+                {successMsg && <p className={styles.successMsg}>{successMsg}</p>}
 
                 <form onSubmit={handleSubmit}>
                     {!isLogin && (
                         <>
                             <div className={styles.formGroup}>
-                                <label className={styles.label}>Seu Nome</label>
+                                <label className={styles.label}>Seu nome</label>
                                 <input
                                     type="text"
                                     value={name}
@@ -105,28 +111,28 @@ export default function LoginPage() {
                                 />
                             </div>
                             <div className={styles.formGroup}>
-                                <label className={styles.label}>Nome da Organização</label>
+                                <label className={styles.label}>Nome da empresa</label>
                                 <input
                                     type="text"
                                     value={companyName}
                                     onChange={e => setCompanyName(e.target.value)}
                                     required
                                     className={styles.input}
-                                    placeholder="Minha Empresa LTDA"
+                                    placeholder="Minha Empresa"
                                 />
                             </div>
                         </>
                     )}
 
                     <div className={styles.formGroup}>
-                        <label className={styles.label}>Endereço de Email</label>
+                        <label className={styles.label}>E-mail</label>
                         <input
                             type="email"
                             value={email}
                             onChange={e => setEmail(e.target.value)}
                             required
                             className={styles.input}
-                            placeholder="admin@recoverwp.com"
+                            placeholder="voce@empresa.com"
                         />
                     </div>
                     <div className={styles.formGroup}>
@@ -141,15 +147,15 @@ export default function LoginPage() {
                         />
                     </div>
                     <button type="submit" className={styles.button} disabled={loading}>
-                        {loading ? 'Aguarde...' : (isLogin ? 'Entrar' : 'Cadastrar')}
+                        {loading ? 'Aguarde...' : isLogin ? 'Entrar' : 'Criar conta'}
                     </button>
                 </form>
 
                 <div className={styles.switchText}>
                     {isLogin ? (
-                        <>Não tem uma conta? <span className={styles.switchLink} onClick={() => { setIsLogin(false); setError(''); setSuccessMsg(''); }}>Cadastre-se!</span></>
+                        <>Não tem uma conta?<span className={styles.switchLink} onClick={() => switchMode(false)}>Cadastre-se</span></>
                     ) : (
-                        <>Já possui uma conta? <span className={styles.switchLink} onClick={() => { setIsLogin(true); setError(''); setSuccessMsg(''); }}>Faça login</span></>
+                        <>Já tem uma conta?<span className={styles.switchLink} onClick={() => switchMode(true)}>Fazer login</span></>
                     )}
                 </div>
             </div>

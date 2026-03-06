@@ -17,6 +17,9 @@ const PROVIDERS = [
     { id: 'hotmart', name: 'Hotmart' },
     { id: 'kiwify', name: 'Kiwify' },
     { id: 'cakto', name: 'Cakto' },
+    { id: 'appmax', name: 'Appmax' },
+    { id: 'eduzz', name: 'Eduzz' },
+    { id: 'monetizze', name: 'Monetizze' },
     { id: 'shopify', name: 'Shopify' },
     { id: 'custom', name: 'Personalizado' },
 ];
@@ -50,7 +53,9 @@ export function WebhookGridClient({ configs, orgId }: { configs: any[], orgId: s
         else if (lowerUrl.includes('kiwify')) found = PROVIDERS.find(p => p.id === 'kiwify');
         else if (lowerUrl.includes('hubla')) found = PROVIDERS.find(p => p.id === 'hubla');
         else if (lowerUrl.includes('myshopify') || lowerUrl.includes('shopify')) found = PROVIDERS.find(p => p.id === 'shopify');
-        else if (lowerUrl.includes('eduzz')) found = { id: 'custom', name: 'Eduzz' };
+        else if (lowerUrl.includes('eduzz') || lowerUrl.includes('nutror') || lowerUrl.includes('sun')) found = PROVIDERS.find(p => p.id === 'eduzz');
+        else if (lowerUrl.includes('appmax')) found = PROVIDERS.find(p => p.id === 'appmax');
+        else if (lowerUrl.includes('monetizze') || lowerUrl.includes('monetiz')) found = PROVIDERS.find(p => p.id === 'monetizze');
         else if (lowerUrl.includes('braip')) found = { id: 'custom', name: 'Braip' };
         else if (lowerUrl.includes('ticto')) found = { id: 'custom', name: 'Ticto' };
 

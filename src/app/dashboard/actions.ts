@@ -15,10 +15,7 @@ async function getOrgId() {
 // ==== ORGANIZATION ====
 export async function updateWebhookSecret(secret: string) {
     const orgId = await getOrgId();
-    await prisma.organization.update({
-        where: { id: orgId },
-        data: { webhook_secret: secret }
-    });
+    await prisma.organization.update({ where: { id: orgId }, data: { webhook_secret: secret } });
     revalidatePath('/dashboard/integrations');
 }
 
@@ -40,9 +37,7 @@ export async function addWebhookConfig(data: { provider: string, name: string, c
 
 export async function deleteWebhookConfig(id: string) {
     const orgId = await getOrgId();
-    await prisma.webhookConfig.delete({
-        where: { id, organizationId: orgId }
-    });
+    await prisma.webhookConfig.delete({ where: { id, organizationId: orgId } });
     revalidatePath('/dashboard/integrations');
 }
 
@@ -64,9 +59,7 @@ export async function addWhatsAppNumber(data: { phoneNumberId: string, wabaId: s
 
 export async function deleteWhatsAppNumber(id: string) {
     const orgId = await getOrgId();
-    await prisma.whatsAppNumber.delete({
-        where: { id, organizationId: orgId }
-    });
+    await prisma.whatsAppNumber.delete({ where: { id, organizationId: orgId } });
     revalidatePath('/dashboard/integrations');
 }
 
@@ -74,28 +67,37 @@ export async function deleteWhatsAppNumber(id: string) {
 export async function addLead(data: { name: string, phoneE164: string, email?: string }) {
     const orgId = await getOrgId();
     await prisma.lead.create({
-        data: {
-            organizationId: orgId,
-            name: data.name,
-            phoneE164: data.phoneE164,
-            email: data.email || null,
-        }
+        data: { organizationId: orgId, name: data.name, phoneE164: data.phoneE164, email: data.email || null }
     });
     revalidatePath('/dashboard/leads');
 }
 
 export async function deleteLead(id: string) {
     const orgId = await getOrgId();
-    await prisma.lead.delete({
-        where: { id, organizationId: orgId }
-    });
+    await prisma.lead.delete({ where: { id, organizationId: orgId } });
     revalidatePath('/dashboard/leads');
 }
 
-// ==== CAMPANHAS ====
-export async function addCampaign(data: { name: string, triggerEvent: string, delayValue: number, delayUnit: 'minutes' | 'seconds', messageType: string, textContent: string, mediaUrl: string }) {
+// ==== CAMPANHAS (suporte multi-step) ====
+
+export interface CampaignStep {
+    delayValue: number;
+    delayUnit: 'minutes' | 'seconds' | 'hours';
+    messageType: 'text' | 'audio';
+    textContent: string;
+    mediaUrl: string;
+}
+
+export async function addCampaign(data: {
+    name: string;
+    triggerEvent: string;
+    steps: CampaignStep[];
+}) {
     const orgId = await getOrgId();
-    const delaySeconds = data.delayUnit === 'minutes' ? data.delayValue * 60 : data.delayValue;
+
+    if (!data.steps || data.steps.length === 0) {
+        throw new Error('A campanha deve ter pelo menos uma mensagem.');
+    }
 
     await prisma.campaign.create({
         data: {
@@ -106,62 +108,64 @@ export async function addCampaign(data: { name: string, triggerEvent: string, de
             stopOnEventTypes: JSON.stringify(['payment_approved', 'refunded']),
             maxAttemptsPerLeadPerOrder: 3,
             steps: {
-                create: [
-                    {
-                        stepOrder: 1,
-                        delaySeconds: delaySeconds,
-                        delayMinutes: Math.floor(delaySeconds / 60), // Mantém para compatibilidade visual básica
-                        messageType: data.messageType,
-                        contentText: data.messageType === 'text' ? data.textContent : null,
-                        mediaUrl: data.messageType === 'audio' ? data.mediaUrl : null,
+                create: data.steps.map((step, idx) => {
+                    const delaySeconds = toSeconds(step.delayValue, step.delayUnit);
+                    return {
+                        stepOrder: idx + 1,
+                        delaySeconds,
+                        delayMinutes: Math.floor(delaySeconds / 60),
+                        messageType: step.messageType,
+                        contentText: step.messageType === 'text' ? step.textContent : null,
+                        mediaUrl: step.messageType === 'audio' ? step.mediaUrl : null,
                         sendOnlyIf: 'qualquer'
-                    }
-                ]
+                    };
+                })
             }
         }
     });
     revalidatePath('/dashboard/campaigns');
 }
 
-export async function updateCampaign(id: string, data: { name: string, triggerEvent: string, delayValue: number, delayUnit: 'minutes' | 'seconds', messageType: string, textContent: string, mediaUrl: string }) {
+export async function updateCampaign(id: string, data: {
+    name: string;
+    triggerEvent: string;
+    steps: CampaignStep[];
+}) {
     const orgId = await getOrgId();
-    const campaign = await prisma.campaign.findUnique({ where: { id, organizationId: orgId }, include: { steps: true } });
+    const campaign = await prisma.campaign.findUnique({ where: { id, organizationId: orgId } });
     if (!campaign) throw new Error('Campanha não encontrada');
 
-    const delaySeconds = data.delayUnit === 'minutes' ? data.delayValue * 60 : data.delayValue;
+    // Apaga todos os steps antigos e recria (replace completo)
+    await prisma.cadenceStep.deleteMany({ where: { campaignId: id } });
 
     await prisma.campaign.update({
         where: { id },
         data: {
             name: data.name,
             triggerEventTypes: JSON.stringify([data.triggerEvent]),
+            steps: {
+                create: data.steps.map((step, idx) => {
+                    const delaySeconds = toSeconds(step.delayValue, step.delayUnit);
+                    return {
+                        stepOrder: idx + 1,
+                        delaySeconds,
+                        delayMinutes: Math.floor(delaySeconds / 60),
+                        messageType: step.messageType,
+                        contentText: step.messageType === 'text' ? step.textContent : null,
+                        mediaUrl: step.messageType === 'audio' ? step.mediaUrl : null,
+                        sendOnlyIf: 'qualquer'
+                    };
+                })
+            }
         }
     });
-
-    // Atualiza o primeiro step
-    if (campaign.steps[0]) {
-        await prisma.cadenceStep.update({
-            where: { id: campaign.steps[0].id },
-            data: {
-                delaySeconds: delaySeconds,
-                delayMinutes: Math.floor(delaySeconds / 60),
-                messageType: data.messageType,
-                contentText: data.messageType === 'text' ? data.textContent : null,
-                mediaUrl: data.messageType === 'audio' ? data.mediaUrl : null,
-            }
-        });
-    }
     revalidatePath('/dashboard/campaigns');
 }
 
-
 export async function deleteCampaign(id: string) {
     const orgId = await getOrgId();
-    // Apagar steps primeiro (simulando cascade)
     await prisma.cadenceStep.deleteMany({ where: { campaignId: id } });
-    await prisma.campaign.delete({
-        where: { id, organizationId: orgId }
-    });
+    await prisma.campaign.delete({ where: { id, organizationId: orgId } });
     revalidatePath('/dashboard/campaigns');
 }
 
@@ -172,14 +176,23 @@ export async function stopRun(id: string) {
         where: { id, organizationId: orgId },
         data: { status: 'stopped' }
     });
+    await prisma.stepDispatch.updateMany({
+        where: { runId: id, status: 'pending' },
+        data: { status: 'canceled', lastError: 'Run parada manualmente' }
+    });
     revalidatePath('/dashboard/runs');
 }
 
 export async function deleteRun(id: string) {
     const orgId = await getOrgId();
     await prisma.stepDispatch.deleteMany({ where: { runId: id } });
-    await prisma.recoveryRun.delete({
-        where: { id, organizationId: orgId }
-    });
+    await prisma.recoveryRun.delete({ where: { id, organizationId: orgId } });
     revalidatePath('/dashboard/runs');
+}
+
+// ==== UTILS ====
+function toSeconds(value: number, unit: 'minutes' | 'seconds' | 'hours'): number {
+    if (unit === 'hours') return value * 3600;
+    if (unit === 'minutes') return value * 60;
+    return value;
 }

@@ -9,10 +9,8 @@ export async function GET(req: NextRequest) {
     const secretParam = url.searchParams.get('secret');
     const authHeader = req.headers.get('authorization');
     const expectedSecret = process.env.CRON_SECRET || 'cron-recuperei-2024';
-
     const isForce = url.searchParams.get('force') === 'true';
 
-    // Permite Bearer token ou query param ?secret=...
     if (authHeader !== `Bearer ${expectedSecret}` && secretParam !== expectedSecret) {
         console.warn('[SCHEDULER] Tentativa de acesso não autorizado');
         return new NextResponse('Unauthorized', { status: 401 });
@@ -20,13 +18,14 @@ export async function GET(req: NextRequest) {
 
     try {
         const now = new Date();
-        console.log(`[SCHEDULER] Iniciando processamento em ${now.toISOString()} (Force: ${isForce})`);
+        console.log(`[SCHEDULER] Iniciando em ${now.toISOString()}`);
 
         const where: any = { status: 'pending' };
         if (!isForce) {
             where.scheduledFor = { lte: now };
         }
 
+        // Processar até 20 dispatches por ciclo para manter delays precisos
         const pendingDispatches = await prisma.stepDispatch.findMany({
             where,
             include: {
@@ -42,16 +41,15 @@ export async function GET(req: NextRequest) {
                 },
                 step: true
             },
-            take: isForce ? 10 : 1,
+            take: 20,
             orderBy: { scheduledFor: 'asc' }
         });
 
         if (pendingDispatches.length === 0) {
-            console.log('[SCHEDULER] Nenhum dispatch pendente no momento.');
             return NextResponse.json({ processed: 0, message: 'Nada para enviar' });
         }
 
-        console.log(`[SCHEDULER] Processando ${pendingDispatches.length} dispatch(es)...`);
+        console.log(`[SCHEDULER] ${pendingDispatches.length} dispatch(es) para processar`);
 
         let sent = 0, skipped = 0, failed = 0;
 
@@ -60,7 +58,10 @@ export async function GET(req: NextRequest) {
             const { order, organization } = run;
             const { lead } = order;
 
-            // 1. Verifica se a ordem já foi concluída (compra aprovada ou reembolso)
+            const elapsed = Date.now() - new Date(dispatch.scheduledFor).getTime();
+            console.log(`[SCHEDULER] Dispatch ${dispatch.id} — atrasado ${Math.round(elapsed / 1000)}s do horário agendado`);
+
+            // Cancelar se pedido já finalizado ou run parada
             if (order.status === 'approved' || order.status === 'refunded' || run.status === 'stopped') {
                 await prisma.stepDispatch.update({
                     where: { id: dispatch.id },
@@ -70,67 +71,38 @@ export async function GET(req: NextRequest) {
                 continue;
             }
 
-            // 2. Verifica se tem número WhatsApp configurado
             const waNumbers = organization.whatsappNumbers;
             if (!waNumbers || waNumbers.length === 0) {
-                console.warn(`[SCHEDULER] Org ${organization.id} sem números ativos.`);
                 await failDispatch(dispatch.id, dispatch.attempts, 'Nenhum número WhatsApp ativo encontrado');
                 failed++;
                 continue;
             }
 
-            // 3. O instanceName é salvo em phoneNumberId quando conectado via Evolution API
-            const waNumber = waNumbers[0];
-            const instanceName = waNumber.phoneNumberId;
-
-            console.log(`[SCHEDULER] Verificando conexão da instância: ${instanceName}`);
+            const instanceName = waNumbers[0].phoneNumberId;
             const connected = await isInstanceConnected(instanceName);
             if (!connected) {
-                console.error(`[SCHEDULER] Instância ${instanceName} desconectada da Evolution API.`);
                 await failDispatch(dispatch.id, dispatch.attempts, `Instância ${instanceName} desconectada`);
                 failed++;
                 continue;
             }
 
-            console.log(`[SCHEDULER] Enviando mensagem para ${lead.phoneE164}...`);
-            // 5. Envia a mensagem com comportamento humano anti-ban
             try {
                 let messageId: string | undefined;
+                const text = replaceVariables(step.contentText || '', lead);
 
                 if (step.messageType === 'audio' && step.mediaUrl) {
-                    console.log(`[SCHEDULER] Tipo Áudio: ${step.mediaUrl}`);
-                    const result = await sendAudioWithHumanBehavior(
-                        instanceName,
-                        lead.phoneE164,
-                        step.mediaUrl
-                    );
+                    const result = await sendAudioWithHumanBehavior(instanceName, lead.phoneE164, step.mediaUrl);
                     messageId = result.messageId;
                 } else {
-                    const text = step.contentText || '';
-                    console.log(`[SCHEDULER] Tipo Texto: "${text.substring(0, 30)}..."`);
-                    const result = await sendTextWithHumanBehavior(
-                        instanceName,
-                        lead.phoneE164,
-                        text,
-                        lead.name || undefined
-                    );
+                    const result = await sendTextWithHumanBehavior(instanceName, lead.phoneE164, text, lead.name || undefined);
                     messageId = result.messageId;
                 }
 
-                console.log(`[SCHEDULER] ✅ Sucesso! MessageId: ${messageId}`);
-
-                // Atualiza como enviado
                 await prisma.stepDispatch.update({
                     where: { id: dispatch.id },
-                    data: {
-                        status: 'sent',
-                        sentAt: new Date(),
-                        attempts: dispatch.attempts + 1,
-                        lastError: null,
-                    }
+                    data: { status: 'sent', sentAt: new Date(), attempts: dispatch.attempts + 1, lastError: null }
                 });
 
-                // Registra a mensagem no histórico
                 await prisma.message.create({
                     data: {
                         organizationId: organization.id,
@@ -138,34 +110,68 @@ export async function GET(req: NextRequest) {
                         orderId: order.id,
                         direction: 'outbound',
                         channel: 'whatsapp',
-                        payload: JSON.stringify({
-                            type: step.messageType,
-                            content: step.contentText || step.mediaUrl,
-                            instanceName,
-                        }),
+                        payload: JSON.stringify({ type: step.messageType, content: step.contentText || step.mediaUrl, instanceName }),
                         waMessageId: messageId,
                         status: 'sent',
                     }
                 });
 
-                sent++;
+                // Atualiza run como running quando primeiro step é enviado
+                if (dispatch.step.stepOrder === 1) {
+                    await prisma.recoveryRun.update({
+                        where: { id: run.id },
+                        data: { status: 'running' }
+                    }).catch(() => { });
+                }
 
-                // Pausa entre mensagens diferentes (40s-90s) para evitar spam
+                sent++;
+                console.log(`[SCHEDULER] ✅ Enviado para ${lead.phoneE164} — step ${step.stepOrder}`);
+
+                // Pausa APENAS se há mais de 1 mensagem NO MESMO LOTE para diferentes leads (anti-ban)
+                // NÃO pausamos entre steps da mesma sequência — cada step já tem seu scheduledFor
                 if (pendingDispatches.indexOf(dispatch) < pendingDispatches.length - 1) {
-                    await new Promise(r => setTimeout(r, Math.random() * 50000 + 40000));
+                    const nextDispatch = pendingDispatches[pendingDispatches.indexOf(dispatch) + 1];
+                    // Só pausa se for um lead diferente (não a próxima mensagem do mesmo funil)
+                    if (nextDispatch?.run?.order?.leadId !== dispatch.run.order.leadId) {
+                        await new Promise(r => setTimeout(r, 3000 + Math.random() * 4000)); // 3–7s entre leads diferentes
+                    }
                 }
 
             } catch (err: any) {
-                console.error(`[SCHEDULER] Erro ao enviar para ${lead.phoneE164}:`, err.message);
+                console.error(`[SCHEDULER] ❌ Erro: ${err.message}`);
                 await failDispatch(dispatch.id, dispatch.attempts, err.message);
                 failed++;
             }
         }
 
+        // Verifica se todos os dispatches de alguma run foram concluídos para marcar como completed
+        await checkAndCompleteRuns();
+
         return NextResponse.json({ processed: pendingDispatches.length, sent, skipped, failed });
     } catch (err) {
         console.error('[CRON ERROR]', err);
         return new NextResponse('Internal Error', { status: 500 });
+    }
+}
+
+function replaceVariables(text: string, lead: any): string {
+    return text
+        .replace(/\{\{nome\}\}/gi, lead.name || 'Cliente')
+        .replace(/\{\{name\}\}/gi, lead.name || 'Cliente')
+        .replace(/\{\{email\}\}/gi, lead.email || '')
+        .replace(/\{\{telefone\}\}/gi, lead.phoneE164 || '');
+}
+
+async function checkAndCompleteRuns() {
+    // Busca runs que estejam running/active e sem dispatches pendentes
+    const activeRuns = await prisma.recoveryRun.findMany({
+        where: { status: { in: ['running', 'active'] } },
+        include: { dispatches: { where: { status: 'pending' } } }
+    });
+    for (const run of activeRuns) {
+        if (run.dispatches.length === 0) {
+            await prisma.recoveryRun.update({ where: { id: run.id }, data: { status: 'completed' } });
+        }
     }
 }
 
@@ -177,7 +183,8 @@ async function failDispatch(dispatchId: string, currentAttempts: number, errorMs
             data: { status: 'failed', attempts: newAttempts, lastError: errorMsg }
         });
     } else {
-        const backoffMinutes = newAttempts === 1 ? 10 : 30;
+        // Retry com backoff menor (2min, 5min) para não atrasar muito
+        const backoffMinutes = newAttempts === 1 ? 2 : 5;
         const nextRetry = new Date(Date.now() + backoffMinutes * 60000);
         await prisma.stepDispatch.update({
             where: { id: dispatchId },
