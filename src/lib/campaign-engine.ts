@@ -129,13 +129,14 @@ export async function evaluateCampaigns(organizationId: string, orderId: string,
                 const secondsToWait = secondsFromMinutes + (step.delaySeconds || 0);
                 const scheduledTime = new Date(now.getTime() + secondsToWait * 1000);
 
-                // Verifica se já existe um dispatch para este STEP nesta RUN para evitar duplicidade
+                // Verifica se já existe um dispatch PENDENTE para este STEP nesta RUN para evitar duplicidade
+                // Se o anterior já foi 'sent', permitimos criar um novo para o reinício da campanha.
                 const existingDispatch = await prisma.stepDispatch.findFirst({
-                    where: { runId: run.id, stepId: step.id }
+                    where: { runId: run.id, stepId: step.id, status: 'pending' }
                 });
 
                 if (existingDispatch) {
-                    console.log(`[CampaignEngine] Dispatch já existe para o Step ${step.id} na Run ${run.id}. Pulando.`);
+                    console.log(`[CampaignEngine] Dispatch PENDENTE já existe para o Step ${step.id} na Run ${run.id}. Pulando.`);
                     continue;
                 }
 
