@@ -47,8 +47,17 @@ export const caktoAdapter: WebhookProviderAdapter = {
             const clientEmail = data.customerEmail || customer.email || '';
             const clientPhone = data.customerCellphone || customer.phone || customer.mobile || '';
 
+            // Extração de ID baseada em evidências de logs da Cakto
+            const externalOrderId = data.transaction_id || 
+                                   data.order_id || 
+                                   data.reference_id ||
+                                   (data.product ? data.product.short_id : '') || 
+                                   rawPayload.transaction_id ||
+                                   rawPayload.order_id ||
+                                   `cakto_${Date.now()}`;
+
             return {
-                externalOrderId: data.transaction_id || data.order_id || (data.product ? data.product.short_id : '') || String(Date.now()),
+                externalOrderId: String(externalOrderId),
                 lead: {
                     name: clientName,
                     phoneE164: String(clientPhone).replace(/\D/g, ''),
