@@ -15,13 +15,13 @@ export const caktoAdapter: WebhookProviderAdapter = {
             const rawEvent = String(data.event || data.event_name || data.status || '').toLowerCase();
             const method = String(data.payment_method || data.method || '').toLowerCase();
 
-            let eventType: any = 'order_created';
-            let status: any = 'pending';
+            let eventType: any = 'checkout_abandoned';
+            let status: any = 'started';
 
             if (rawEvent.includes('approved') || rawEvent.includes('paid') || rawEvent.includes('pago')) {
                 eventType = 'payment_approved';
                 status = 'approved';
-            } else if (rawEvent.includes('pending') || rawEvent.includes('waiting') || rawEvent.includes('aguardando')) {
+            } else if (rawEvent.includes('waiting_payment') || rawEvent.includes('pending') || rawEvent.includes('waiting') || rawEvent.includes('aguardando')) {
                 status = 'pending';
                 if (method.includes('pix')) eventType = 'pix_generated';
                 else if (method.includes('boleto') || method.includes('billet')) eventType = 'boleto_generated';
@@ -31,7 +31,7 @@ export const caktoAdapter: WebhookProviderAdapter = {
             } else if (rawEvent.includes('refund') || rawEvent.includes('estornado')) {
                 eventType = 'refund';
                 status = 'refunded';
-            } else if (rawEvent.includes('abandoned') || rawEvent.includes('checkout')) {
+            } else if (rawEvent.includes('abandoned') || rawEvent.includes('checkout') || rawEvent.includes('lead')) {
                 eventType = 'checkout_abandoned';
                 status = 'started';
             }
