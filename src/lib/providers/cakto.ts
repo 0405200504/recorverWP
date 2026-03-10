@@ -37,23 +37,26 @@ export const caktoAdapter: WebhookProviderAdapter = {
             }
 
             const customer = data.customer || data.client || {};
+            const clientName = data.customerName || customer.name || customer.full_name || '';
+            const clientEmail = data.customerEmail || customer.email || '';
+            const clientPhone = data.customerCellphone || customer.phone || customer.mobile || '';
 
             return {
-                externalOrderId: data.transaction_id || data.order_id || String(Date.now()),
+                externalOrderId: data.transaction_id || data.order_id || (data.product ? data.product.short_id : '') || String(Date.now()),
                 lead: {
-                    name: customer.name || customer.full_name || '',
-                    phoneE164: String(customer.phone || customer.mobile || '').replace(/\D/g, ''),
-                    email: customer.email || '',
+                    name: clientName,
+                    phoneE164: String(clientPhone).replace(/\D/g, ''),
+                    email: clientEmail,
                 },
                 payment: {
                     amount: Number(data.amount || data.price || data.total || 0),
-                    currency: data.currency || 'BRL',
+                    currency: data.currency || (data.offer ? data.offer.currency : 'BRL'),
                     method: method as any,
                 },
                 status: status,
                 eventType: eventType,
-                timestamp: data.created_at || new Date().toISOString(),
-                checkoutUrl: data.checkout_url || data.payment_url || undefined,
+                timestamp: data.created_at || data.createdAt || new Date().toISOString(),
+                checkoutUrl: data.checkout_url || data.checkoutUrl || data.payment_url || undefined,
                 pixCopyPaste: data.pix_code || data.pix_qrcode || undefined,
             };
 
