@@ -34,8 +34,7 @@ export function WebhookGridClient({ configs, orgId }: { configs: any[], orgId: s
     const [detectedProvider, setDetectedProvider] = useState<any>(null);
 
     useEffect(() => {
-        const origin = window.location.origin;
-        setBaseUrl(origin.includes('localhost') ? 'https://recorver-wp.vercel.app' : origin);
+        setBaseUrl(window.location.origin);
     }, []);
 
     const detectProvider = (url: string) => {
