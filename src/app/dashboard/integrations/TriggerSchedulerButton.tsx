@@ -21,7 +21,7 @@ export function TriggerSchedulerButton() {
         if (loading) return;
         setLoading(true);
         try {
-            const res = await fetch(`/api/scheduler?secret=${CRON_SECRET}`);
+            const res = await fetch(`/api/scheduler?secret=${CRON_SECRET}&force=true`);
             const data = await res.json();
             setLastResult({ ...data, ts: new Date().toLocaleTimeString('pt-BR') });
         } catch {
@@ -33,16 +33,16 @@ export function TriggerSchedulerButton() {
 
     const startAutoMode = () => {
         setAutoMode(true);
-        setCountdown(30);
+        setCountdown(15);
         runScheduler();
 
         intervalRef.current = setInterval(() => {
             runScheduler();
-            setCountdown(30);
-        }, 30000);
+            setCountdown(15);
+        }, 15000);
 
         countdownRef.current = setInterval(() => {
-            setCountdown(c => (c <= 1 ? 30 : c - 1));
+            setCountdown(c => (c <= 1 ? 15 : c - 1));
         }, 1000);
     };
 

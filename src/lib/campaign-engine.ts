@@ -95,7 +95,8 @@ export async function evaluateCampaigns(organizationId: string, orderId: string,
 
             const now = new Date();
             for (const step of campaign.steps) {
-                const secondsToWait = step.delaySeconds || (step.delayMinutes ? step.delayMinutes * 60 : 0);
+                const secondsFromMinutes = (step.delayMinutes || 0) * 60;
+                const secondsToWait = secondsFromMinutes + (step.delaySeconds || 0);
                 const scheduledTime = new Date(now.getTime() + secondsToWait * 1000);
 
                 // Cria o registro de dispatch
