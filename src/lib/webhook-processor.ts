@@ -99,7 +99,7 @@ export async function processWebhookPayload(organizationId: string, provider: st
         where: {
             orderId: order.id,
             eventType: payload.eventType,
-            createdAt: { gte: new Date(Date.now() - 5000) } // Janela de 5 segundos para evitar race condition
+            createdAt: { gte: new Date(Date.now() - 30000) } // Janela de 30 segundos para evitar duplicidade de webhooks redundantes
         }
     });
 

@@ -129,14 +129,20 @@ export async function evaluateCampaigns(organizationId: string, orderId: string,
                 const secondsToWait = secondsFromMinutes + (step.delaySeconds || 0);
                 const scheduledTime = new Date(now.getTime() + secondsToWait * 1000);
 
-                // Verifica se já existe um dispatch PENDENTE para este STEP nesta RUN para evitar duplicidade
-                // Se o anterior já foi 'sent', permitimos criar um novo para o reinício da campanha.
+                // Trava de Anti-Duplicidade (30 min): 
+                // Não permite criar um novo agendamento para o MESMO passo se já existe um registro (pendente ou enviado) 
+                // criado nos últimos 30 minutos para este pedido. Isso evita duplicidade por webhooks redundantes da plataforma.
+                const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
                 const existingDispatch = await prisma.stepDispatch.findFirst({
-                    where: { runId: run.id, stepId: step.id, status: 'pending' }
+                    where: { 
+                        runId: run.id, 
+                        stepId: step.id,
+                        createdAt: { gte: thirtyMinutesAgo }
+                    }
                 });
 
                 if (existingDispatch) {
-                    console.log(`[CampaignEngine] Dispatch PENDENTE já existe para o Step ${step.id} na Run ${run.id}. Pulando.`);
+                    console.log(`[CampaignEngine] Dispatch recente (${existingDispatch.status}) já existe para o Step ${step.id} na Run ${run.id}. Pulando para evitar duplicidade.`);
                     continue;
                 }
 
