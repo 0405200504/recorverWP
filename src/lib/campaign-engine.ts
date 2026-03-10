@@ -162,6 +162,12 @@ async function executeImmediateDispatch(dispatchId: string) {
     const instanceName = waNumbers[0].phoneNumberId;
 
     try {
+        // Marca como enviado ANTES do delay humano para evitar race condition com o scheduler
+        await prisma.stepDispatch.update({
+            where: { id: dispatch.id },
+            data: { status: 'sent', sentAt: new Date(), attempts: 1 }
+        });
+
         const connected = await isInstanceConnected(instanceName);
         if (!connected) throw new Error(`Instância ${instanceName} desconectada`);
 
@@ -174,12 +180,6 @@ async function executeImmediateDispatch(dispatchId: string) {
             const result = await sendTextWithHumanBehavior(instanceName, lead.phoneE164, step.contentText || '', lead.name || undefined);
             messageId = result.messageId;
         }
-
-        // Atualiza como enviado
-        await prisma.stepDispatch.update({
-            where: { id: dispatch.id },
-            data: { status: 'sent', sentAt: new Date(), attempts: 1 }
-        });
 
         // Registra no histórico
         await prisma.message.create({

@@ -87,6 +87,12 @@ export async function GET(req: NextRequest) {
             }
 
             try {
+                // Marca como enviado ANTES do delay humano para evitar race condition
+                await prisma.stepDispatch.update({
+                    where: { id: dispatch.id },
+                    data: { status: 'sent', sentAt: new Date(), attempts: dispatch.attempts + 1, lastError: null }
+                });
+
                 let messageId: string | undefined;
                 const text = replaceVariables(step.contentText || '', lead);
 
@@ -97,11 +103,6 @@ export async function GET(req: NextRequest) {
                     const result = await sendTextWithHumanBehavior(instanceName, lead.phoneE164, text, lead.name || undefined);
                     messageId = result.messageId;
                 }
-
-                await prisma.stepDispatch.update({
-                    where: { id: dispatch.id },
-                    data: { status: 'sent', sentAt: new Date(), attempts: dispatch.attempts + 1, lastError: null }
-                });
 
                 await prisma.message.create({
                     data: {
