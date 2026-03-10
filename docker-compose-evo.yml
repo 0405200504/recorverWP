@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:13-alpine
+    container_name: postgres-2
+    networks:
+      - evo-net-2
+    environment:
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=evo-db
+    volumes:
+      - pg_data-2:/var/lib/postgresql/data
+    restart: always
+
+  redis:
+    image: redis:alpine
+    container_name: redis-2
+    networks:
+      - evo-net-2
+    ports:
+      - "6380:6379"
+    restart: always
+
+  api:
+    image: atendai/evolution-api:latest
+    container_name: evo-api-2
+    networks:
+      - evo-net-2
+    ports:
+      - "8083:8080"
+    volumes:
+      - evo-instances-2:/evolution/instances
+    env_file:
+      - .env.evo
+    depends_on:
+      - db
+      - redis
+    restart: always
+
+networks:
+  evo-net-2:
+    driver: bridge
+
+volumes:
+  pg_data-2:
+  evo-instances-2:

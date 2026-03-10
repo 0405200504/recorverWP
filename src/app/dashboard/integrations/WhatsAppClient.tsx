@@ -86,10 +86,6 @@ export function AddWhatsAppButton() {
                     displayName: data?.instance?.profileName || instanceName
                 });
                 setTimeout(handleClose, 2500);
-            } else if (state === 'connecting' && phase === 'qr') {
-                // QR foi escaneado, aguardando autenticação
-                setPhase('connecting');
-                setConnectingStartedAt(Date.now());
             } else if (phase === 'connecting') {
                 // Verificar timeout: se ficou mais de 45s em 'connecting', voltar ao QR
                 if (connectingStartedAt && Date.now() - connectingStartedAt > 45_000) {
