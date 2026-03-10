@@ -99,6 +99,16 @@ export async function evaluateCampaigns(organizationId: string, orderId: string,
                 const secondsToWait = secondsFromMinutes + (step.delaySeconds || 0);
                 const scheduledTime = new Date(now.getTime() + secondsToWait * 1000);
 
+                // Verifica se já existe um dispatch para este STEP nesta RUN para evitar duplicidade
+                const existingDispatch = await prisma.stepDispatch.findFirst({
+                    where: { runId: run.id, stepId: step.id }
+                });
+
+                if (existingDispatch) {
+                    console.log(`[CampaignEngine] Dispatch já existe para o Step ${step.id} na Run ${run.id}. Pulando.`);
+                    continue;
+                }
+
                 // Cria o registro de dispatch
                 const dispatch = await prisma.stepDispatch.create({
                     data: {
