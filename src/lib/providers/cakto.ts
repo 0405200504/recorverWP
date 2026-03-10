@@ -29,14 +29,17 @@ export const caktoAdapter: WebhookProviderAdapter = {
                 if (method.includes('pix')) eventType = 'pix_generated';
                 else if (method.includes('boleto') || method.includes('billet')) eventType = 'boleto_generated';
             } else if (rawEvent.includes('failed') || rawEvent.includes('refused') || rawEvent.includes('recusado') || rawEvent.includes('cancel')) {
-                eventType = 'payment_failed';
+                eventType = 'card_declined';
                 status = 'failed';
             } else if (rawEvent.includes('refund') || rawEvent.includes('estornado')) {
                 eventType = 'refund';
                 status = 'refunded';
             } else if (rawEvent.includes('abandoned') || rawEvent.includes('checkout') || rawEvent.includes('lead')) {
-                eventType = 'checkout_abandoned';
-                status = 'started';
+                // Se já identificamos como aprovado ou pix acima, não deve cair aqui
+                if (eventType === 'order_created') {
+                    eventType = 'checkout_abandoned';
+                    status = 'started';
+                }
             }
 
             const customer = data.customer || data.client || {};

@@ -26,13 +26,39 @@ export async function evaluateCampaigns(organizationId: string, orderId: string,
 
     console.log(`[CampaignEngine] Tipo do Evento: ${event.eventType}`);
 
-    // Se o pedido já está pago ou reembolsado, devemos parar runs ativos e não criar novos
+    // 1. Trava Global: Se o pedido já está pago ou reembolsado, para tudo.
     if (order.status === 'approved' || order.status === 'refunded') {
-        console.log(`[CampaignEngine] Pedido ${order.id} já finalizado (${order.status}). Parando campanhas.`);
+        console.log(`[CampaignEngine] Pedido ${order.id} já finalizado (${order.status}). Parando TUDO.`);
         await stopActiveRuns(order.id);
         return;
     }
 
+    // 2. Interrupção Dinâmica: Cancela runs ativos se o evento atual for um gatilho de parada
+    const activeRuns = await prisma.recoveryRun.findMany({
+        where: { orderId, status: { in: ['active', 'scheduled', 'running'] } },
+        include: { campaign: true }
+    });
+
+    for (const run of activeRuns) {
+        try {
+            const stopEvents: string[] = JSON.parse(run.campaign.stopOnEventTypes || '[]');
+            if (stopEvents.includes(event.eventType)) {
+                console.log(`[CampaignEngine] Evento "${event.eventType}" é gatilho de parada para campanha "${run.campaign.name}". Cancelando run.`);
+                await prisma.recoveryRun.update({
+                    where: { id: run.id },
+                    data: { status: 'stopped' }
+                });
+                await prisma.stepDispatch.updateMany({
+                    where: { runId: run.id, status: 'pending' },
+                    data: { status: 'canceled', lastError: `Stop trigger: ${event.eventType}` }
+                });
+            }
+        } catch (e) {
+            console.error(`[CampaignEngine] Erro ao processar stopOnEventTypes da run ${run.id}:`, e);
+        }
+    }
+
+    // 3. Avalia novas campanhas
     const activeCampaigns = await prisma.campaign.findMany({
         where: { organizationId, active: true },
         include: { steps: { orderBy: { stepOrder: 'asc' } } }
