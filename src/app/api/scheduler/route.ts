@@ -87,11 +87,16 @@ export async function GET(req: NextRequest) {
             }
 
             try {
-                // Marca como enviado ANTES do delay humano para evitar race condition
-                await prisma.stepDispatch.update({
-                    where: { id: dispatch.id },
+                // Trava atômica: Só prossegue se conseguir marcar como enviado agora
+                const updated = await prisma.stepDispatch.updateMany({
+                    where: { id: dispatch.id, status: 'pending' },
                     data: { status: 'sent', sentAt: new Date(), attempts: dispatch.attempts + 1, lastError: null }
                 });
+
+                if (updated.count === 0) {
+                    console.log(`[SCHEDULER] 🛑 Dispatch ${dispatch.id} já processado por outro worker.`);
+                    continue;
+                }
 
                 let messageId: string | undefined;
                 const text = replaceVariables(step.contentText || '', lead);

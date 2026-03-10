@@ -162,11 +162,16 @@ async function executeImmediateDispatch(dispatchId: string) {
     const instanceName = waNumbers[0].phoneNumberId;
 
     try {
-        // Marca como enviado ANTES do delay humano para evitar race condition com o scheduler
-        await prisma.stepDispatch.update({
-            where: { id: dispatch.id },
+        // Trava atômica: Só prossegue se o status ainda for 'pending'
+        const updated = await prisma.stepDispatch.updateMany({
+            where: { id: dispatch.id, status: 'pending' },
             data: { status: 'sent', sentAt: new Date(), attempts: 1 }
         });
+
+        if (updated.count === 0) {
+            console.log(`[ImmediateDispatch] 🛑 Dispatch ${dispatch.id} já está sendo processado ou já foi enviado.`);
+            return;
+        }
 
         const connected = await isInstanceConnected(instanceName);
         if (!connected) throw new Error(`Instância ${instanceName} desconectada`);
