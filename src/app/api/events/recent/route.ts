@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
         where: { order: { organizationId: orgId } },
         include: { order: { include: { lead: true } } },
         orderBy: { createdAt: 'desc' },
-        take: 20,
+        take: 3,
     });
 
     return NextResponse.json(events.map(e => ({
