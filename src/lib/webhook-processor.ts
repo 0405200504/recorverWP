@@ -45,6 +45,19 @@ export async function processWebhookPayload(organizationId: string, provider: st
     });
 
 
+    const statusPriority: Record<string, number> = {
+        'approved': 4,
+        'refunded': 4,
+        'pending': 3,
+        'pix_generated': 3,
+        'boleto_generated': 3,
+        'card_declined': 2,
+        'payment_failed': 2,
+        'failed': 2,
+        'started': 1,
+        'checkout_abandoned': 1
+    };
+
     if (!order) {
         order = await prisma.order.create({
             data: {
@@ -61,13 +74,20 @@ export async function processWebhookPayload(organizationId: string, provider: st
             }
         });
     } else {
-        // Only update if it's conceptually a newer state 
+        const currentPriority = statusPriority[order.status] || 0;
+        const newPriority = statusPriority[payload.status] || 0;
+
+        // Só atualiza status se for uma prioridade MAIOR ou IGUAL (para casos de novo PIX, por ex)
+        // Mas nunca regredir de PIX/Pago para Abandono
+        const shouldUpdateStatus = newPriority >= currentPriority;
+
         order = await prisma.order.update({
             where: { id: order.id },
             data: {
-                status: payload.status,
-                leadId: lead.id, // Garante que o pedido aponte para o lead com dados mais completos
+                status: shouldUpdateStatus ? payload.status : order.status,
+                leadId: lead.id,
                 paymentMethod: payload.payment.method || order.paymentMethod,
+                amount: payload.payment.amount || order.amount,
                 checkoutUrl: payload.checkoutUrl || order.checkoutUrl,
                 pixCopyPaste: payload.pixCopyPaste || order.pixCopyPaste,
             }

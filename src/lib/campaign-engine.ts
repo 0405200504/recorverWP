@@ -89,15 +89,19 @@ export async function evaluateCampaigns(organizationId: string, orderId: string,
         });
 
         // Se a run já existe MAS está parada/concluída OU não tem nenhum dispatch, permitimos reiniciar
+        // NOVIDADE: Também permitimos reiniciar se a run estiver 'active' mas houver um novo gatilho,
+        // garantindo que novos abandonos/pix reiniciem a cadência de mensagens.
         const needsRestart = existingRun && (
             ['stopped', 'completed', 'failed'].includes(existingRun.status) ||
-            existingRun.dispatches.length === 0
+            existingRun.dispatches.length === 0 ||
+            existingRun.status === 'active' 
         );
 
         if (!existingRun || needsRestart) {
             console.log(`[CampaignEngine] Criando/Reiniciando RecoveryRun para pedido ${orderId} e campanha ${campaign.name}`);
 
             if (existingRun) {
+                // Ao reiniciar, limpamos TODOS os disparos pendentes anteriores desta run
                 await prisma.stepDispatch.deleteMany({
                     where: { runId: existingRun.id, status: 'pending' }
                 });
