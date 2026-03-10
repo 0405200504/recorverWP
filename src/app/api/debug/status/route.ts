@@ -14,11 +14,11 @@ export async function GET() {
 
         return NextResponse.json({
             status: 'online',
-            environment: process.env.NODE_ENV,
             db_connected: true,
             org_count: orgCount,
             last_event_at: lastEvent?.createdAt,
-            version_id: 'v25-anti-duplication-logs', // ID manual para rastreio
+            version_id: 'v25-anti-duplication-logs-public', // ID manual para rastreio
+            latest_commit: 'b4df227-limit-3',
             now: new Date().toISOString()
         });
     } catch (error: any) {
@@ -26,7 +26,7 @@ export async function GET() {
             status: 'degraded',
             error: error.message,
             db_connected: false,
-            version_id: 'v25-anti-duplication-logs'
+            version_id: 'v25-anti-duplication-logs-public'
         }, { status: 500 });
     }
 }
