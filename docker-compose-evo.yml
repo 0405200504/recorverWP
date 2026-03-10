@@ -23,7 +23,7 @@ services:
     restart: always
 
   api:
-    image: atendai/evolution-api:latest
+    image: evoapicloud/evolution-api:v2.3.7
     container_name: evo-api-2
     networks:
       - evo-net-2
