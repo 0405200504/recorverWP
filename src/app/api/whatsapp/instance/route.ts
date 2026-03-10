@@ -23,7 +23,8 @@ export async function POST(req: NextRequest) {
             body: JSON.stringify({
                 instanceName: name,
                 qrcode: true,
-                integration: 'WHATSAPP-BAILEYS'
+                integration: 'WHATSAPP-BAILEYS',
+                syncFullHistory: false
             }),
         });
 
