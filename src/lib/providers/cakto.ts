@@ -12,19 +12,22 @@ export const caktoAdapter: WebhookProviderAdapter = {
             const data = rawPayload.data || rawPayload;
 
             // Cakto webhooks
-            const rawEvent = String(data.event || data.event_name || data.status || '').toLowerCase();
-            const method = String(data.payment_method || data.method || '').toLowerCase();
+            const rawEvent = (data.event || data.event_name || '').toLowerCase();
+            const method = (data.payment_method || '').toLowerCase();
 
-            let eventType: any = 'checkout_abandoned';
-            let status: any = 'started';
+            let eventType: any = 'order_created';
+            let status: any = 'pending';
 
             if (rawEvent.includes('approved') || rawEvent.includes('paid') || rawEvent.includes('pago')) {
                 eventType = 'payment_approved';
                 status = 'approved';
+            } else if (rawEvent.includes('pix')) {
+                eventType = 'pix_generated';
+                status = 'pending';
             } else if (rawEvent.includes('waiting_payment') || rawEvent.includes('pending') || rawEvent.includes('waiting') || rawEvent.includes('aguardando')) {
                 status = 'pending';
-                if (method.includes('pix')) eventType = 'pix_generated';
-                else if (method.includes('boleto') || method.includes('billet')) eventType = 'boleto_generated';
+                if (method.includes('boleto') || method.includes('billet')) eventType = 'boleto_generated';
+                else if (method.includes('pix')) eventType = 'pix_generated';
             } else if (rawEvent.includes('failed') || rawEvent.includes('refused') || rawEvent.includes('recusado') || rawEvent.includes('cancel')) {
                 eventType = 'payment_failed';
                 status = 'failed';
