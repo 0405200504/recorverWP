@@ -12,8 +12,8 @@ export const caktoAdapter: WebhookProviderAdapter = {
             const data = rawPayload.data || rawPayload;
 
             // Cakto webhooks
-            const rawEvent = (data.event || data.event_name || '').toLowerCase();
-            const method = (data.payment_method || '').toLowerCase();
+            const rawEvent = String(rawPayload.event || rawPayload.event_name || data.event || data.event_name || '').toLowerCase();
+            const method = String(data.payment_method || data.method || '').toLowerCase();
 
             let eventType: any = 'order_created';
             let status: any = 'pending';
@@ -26,8 +26,8 @@ export const caktoAdapter: WebhookProviderAdapter = {
                 status = 'pending';
             } else if (rawEvent.includes('waiting_payment') || rawEvent.includes('pending') || rawEvent.includes('waiting') || rawEvent.includes('aguardando')) {
                 status = 'pending';
-                if (method.includes('boleto') || method.includes('billet')) eventType = 'boleto_generated';
-                else if (method.includes('pix')) eventType = 'pix_generated';
+                if (method.includes('pix')) eventType = 'pix_generated';
+                else if (method.includes('boleto') || method.includes('billet')) eventType = 'boleto_generated';
             } else if (rawEvent.includes('failed') || rawEvent.includes('refused') || rawEvent.includes('recusado') || rawEvent.includes('cancel')) {
                 eventType = 'payment_failed';
                 status = 'failed';
@@ -52,7 +52,7 @@ export const caktoAdapter: WebhookProviderAdapter = {
                     email: clientEmail,
                 },
                 payment: {
-                    amount: Number(data.amount || data.price || data.total || 0),
+                    amount: Number(data.amount || data.price || data.total || (data.offer ? data.offer.price : 0) || 0),
                     currency: data.currency || (data.offer ? data.offer.currency : 'BRL'),
                     method: method as any,
                 },
