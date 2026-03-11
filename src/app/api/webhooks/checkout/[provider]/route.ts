@@ -11,12 +11,27 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pro
         console.log(`[Webhook] Recebendo do provedor: ${provider}`);
 
         const url = new URL(req.url);
-        const orgId = url.searchParams.get('orgId');
+        let orgId = url.searchParams.get('orgId');
         
-        if (!orgId) {
-            console.error('[Webhook] Erro: orgId ausente na query string');
-            return NextResponse.json({ error: 'Missing orgId in query params' }, { status: 400 });
+        const rawBodyText = await req.text();
+        let bodyJson: any = {};
+        try {
+            bodyJson = JSON.parse(rawBodyText);
+        } catch (e) {
+            console.error('[Webhook] Erro ao parsear JSON:', e);
         }
+
+        // Tenta pegar orgId do corpo se não estiver na URL
+        if (!orgId && bodyJson.orgId) {
+            orgId = bodyJson.orgId;
+        }
+
+        if (!orgId) {
+            console.error('[Webhook] Erro: orgId ausente (nem na URL nem no corpo)');
+            return NextResponse.json({ error: 'Missing orgId' }, { status: 400 });
+        }
+
+        console.log(`[Webhook] Processando para Org: ${orgId}`);
 
         const org = await prisma.organization.findUnique({ where: { id: orgId } });
         if (!org) {
@@ -30,15 +45,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pro
             return NextResponse.json({ error: 'Provider not supported' }, { status: 400 });
         }
 
-        const rawBodyText = await req.text();
         console.log(`[Webhook] Raw Body capturado. Tamanho: ${rawBodyText.length}`);
-
-        let bodyJson: any = {};
-        try {
-            bodyJson = JSON.parse(rawBodyText);
-        } catch (e) {
-            console.error('[Webhook] Erson ao parsear JSON:', e);
-        }
 
         const signature = req.headers.get('x-signature') || req.headers.get('webhook-signature') || '';
 
