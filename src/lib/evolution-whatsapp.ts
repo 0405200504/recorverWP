@@ -146,3 +146,38 @@ export async function isInstanceConnected(instanceName: string): Promise<boolean
         return false;
     }
 }
+
+/**
+ * Busca todos os grupos que a instância faz parte
+ */
+export async function fetchGroups(instanceName: string): Promise<any[]> {
+    try {
+        const res = await fetch(`${EVO_URL}/group/fetchAllGroups/${instanceName}?getParticipants=false`, { headers });
+        if (!res.ok) throw new Error(await res.text());
+        return await res.json();
+    } catch (err) {
+        console.error(`[EvolutionAPI] Erro ao buscar grupos:`, err);
+        return [];
+    }
+}
+
+/**
+ * Busca participantes de um grupo específico
+ */
+export async function fetchGroupParticipants(instanceName: string, groupJid: string): Promise<string[]> {
+    try {
+        // fetchAllGroups com getParticipants=true traz os dados completos
+        const res = await fetch(`${EVO_URL}/group/fetchAllGroups/${instanceName}?getParticipants=true`, { headers });
+        if (!res.ok) throw new Error(await res.text());
+        const groups = await res.json();
+        const group = groups.find((g: any) => g.id === groupJid);
+        
+        if (!group || !group.participants) return [];
+        
+        // Retorna apenas números no formato E.164 (removendo @s.whatsapp.net)
+        return group.participants.map((p: any) => p.id.split('@')[0]);
+    } catch (err) {
+        console.error(`[EvolutionAPI] Erro ao buscar participantes do grupo ${groupJid}:`, err);
+        return [];
+    }
+}
